@@ -1,4 +1,5 @@
 ---
+import Icon from './ui/Icon.astro';
 import { serverGet } from '../lib/api';
 import type { components } from '../lib/schema';
 type CommentPage = components['schemas']['CommentPage'];
@@ -21,9 +22,9 @@ try {
   <form data-comment>
     <label for="guest-name">昵称</label><input id="guest-name" name="guest_name" required maxlength="80" autocomplete="nickname" />
     <label for="comment-body">评论（提交后由作者审核）</label><textarea id="comment-body" name="body_md" required maxlength="4000" rows="4" />
-    <input name="parent_id" type="hidden" /><p data-reply-notice></p><button type="button" data-cancel-reply hidden>取消回复</button>
+    <input name="parent_id" type="hidden" /><p data-reply-notice></p><button type="button" data-cancel-reply hidden><Icon name="close" />取消回复</button>
     <div class="honeypot" aria-hidden="true"><label for="comment-website">Website</label><input id="comment-website" name="website" tabindex="-1" autocomplete="off" /></div>
-    <button type="submit">提交评论</button>
+    <button type="submit"><Icon name="comment" />提交评论</button>
   </form>
   <p data-notice role="status" aria-live="polite"></p>
 </section>

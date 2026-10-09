@@ -523,3 +523,105 @@ PASS HTML 登录、后台连续保存、跨域直传与封面展示、点赞、�
 build 仍有既有的 5 条上游 MODULE_LEVEL_DIRECTIVE 警告，返回 0。
 临时集群在验证后停止；没有对现有开发/线上数据库执行迁移或使用真实对象存储。
 现有部署启用该功能需要先按正常发布流程执行 `sloray migrate up`；未递增版本号或发布。
+
+## 12. Material 3、Astro 群岛与主题包（2026-10-09）
+
+新增 JSON＋CSS 主题库与发布快照；第六条 expand 迁移只增加 themes / theme_settings。
+管理员可导入、导出、隔离预览、保存、启用、恢复和删除主题。启用同时核对主题库版本和
+启用记录版本。公开站点采用可配置 Material 配色、字体、宽度、导航、列表和首页区块；
+后台、login、setup 复用内置 Material 样式与本地 SVG 图标。Astro 组件复用结构，原生
+自定义元素维护独立交互，server:defer 延迟读取主题工作台和可选页面目录。
+
+以下命令实际执行：
+
+```text
+cargo fmt --all -- --check
+cargo clippy --locked --workspace --all-targets -- -D warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.33s
+cargo test --locked --workspace
+    59 passed; 0 failed（汇总各 crate 的 test result）
+
+target/debug/sloray openapi | cmp - docs/api/openapi.json
+python3 scripts/check-api.py --validate
+PASS OpenAPI 本地引用与唯一 operationId
+python3 scripts/check-api.py --base-ref HEAD
+PASS OpenAPI 向后兼容性检查
+python3 scripts/test-api-contract.py
+Ran 6 tests ... OK
+pnpm --dir web run api:check
+✨ openapi-typescript 7.13.0
+pnpm --dir web run check
+Result (51 files): 0 errors / 0 warnings / 0 hints
+pnpm --dir web run test
+tests 8 / pass 8 / fail 0
+pnpm --dir web run build
+[build] Complete!
+```
+
+构建仍有五个既有上游 MDX / hast-util-to-estree MODULE_LEVEL_DIRECTIVE 警告，构建退出 0。
+未添加任何 Rust/npm 依赖；Material SVG 路径与改编 symbol 附带 Apache-2.0 许可证及来源。
+
+本轮 `./scripts/check-architecture.sh` 曾完整通过，实际输出为：
+
+```text
+== 单文件行数上限：500 行（*.rs 与 *.sh） ==
+  ✓ 全部合规
+advisories ok, bans ok, licenses ok, sources ok
+  ✓ advisories / bans / licenses / sources 全部通过
+  ✓ crate 依赖方向 / workspace 版本引用 / unsafe 禁令通过
+结果：全部通过
+```
+
+最终重跑的行数和 crate 门禁通过，但 GitHub RustSec 在线更新连续遇到 TLS connect error /
+unexpected eof while reading，脚本退出 1。没有改动依赖图或放宽 deny 策略；使用本轮已更新的
+公告库再次执行四项完整检查（缓存提交 550efd3，2026-10-08T16:47:14+02:00）：
+
+```text
+cargo deny --offline --workspace --all-features --locked --log-level error check advisories bans licenses sources
+advisories ok, bans ok, licenses ok, sources ok
+```
+
+网络失败不能视为最新在线公告检查成功；push CI 仍执行原样的在线门禁。
+
+在 /tmp 独立 PostgreSQL 集群的 UUID 临时数据库上，实际运行 smoke-setup / dev / dev-start /
+content / pages / themes / activity / search / media / migrations / backup，全部退出 0。
+主题和备份在最终版本检查改动后再次执行，实际输出：
+
+```text
+PASS 主题包校验、鉴权/CSRF、并发启用冲突、发布快照、SSR 布局、样式注入隔离、群岛鉴权、恢复与删除
+PASS 六条迁移 Applied；down all → up、down 1 → up、fresh，20 张表重建成功
+PASS 0600 逻辑备份、SHA-256 校验、空库完整恢复，20 张表内容与迁移记录逐表一致
+```
+
+测试包括作者不能管理主题、过期库版本不能启用、保存已启用主题不会改动公开快照、启用使文章
+旧 HTML ETag 返回 200，以及 Rust / Astro 默认主题契约一致。备份实际包含一个启用中的主题。
+迁移、备份与 SSR 使用独立临时数据库和无 node_modules 的 dist 发布目录，不访问现有部署数据。
+
+最终构建的真实 Chromium 浏览器回归输出：
+
+```text
+PASS 浏览器局部导航、前进后退、评论提交、中文搜索、SEO 与公开页 axe 检查
+PASS 上传 HTTP/S3 错误与请求编号、网络/CORS 失败、API 失败阶段及诊断脱敏
+PASS Markdown 实时预览/分栏/清洗、未保存离开提示、移动布局、媒体复用与 Markdown 剪贴板及拒绝权限退路
+PASS 主题群岛加载、CSS/布局预览、导入导出、启用快照、恢复删除、外观持久化及 360/768/1440px axe/布局审计
+PASS 后台创建页面、草稿/发布/改址/导航排序/撤回/删除、页面 axe 与退出后隐藏管理入口
+PASS HTML 登录、后台连续保存、跨域直传与封面展示、点赞、审核、删除媒体及管理页 axe 检查
+```
+
+截图审阅发现主题变量曾被基础 CSS 覆盖，修复为 cascade layer 并加入真实颜色/列数断言。
+桌面、移动端与深色界面经截图审阅；移动端 iframe 预览滚动到可见区域后检查正文实际渲染。
+
+另外实际执行 deploy/scripts/test-activate-release.sh，输出“结果：全部通过”。
+使用此前编译的 /tmp/nginx-1.30.5/objs/nginx 运行 scripts/test-nginx.py，输出：
+
+```text
+nginx: configuration file ... test is successful
+PASS POST 失败仅投递一次，未重放到另一 API
+PASS Nginx 配置、API/安装/登录/设置/SSR 分流、真实 IP 头覆盖
+PASS GET 在一个 API 返回 503 时切到健康上游
+PASS 全部上游不可用时正确返回失败
+```
+
+新增 /admin/themes 与 /_server-islands/ThemeWorkbench 路径分流断言。
+actionlint 1.7.12、git diff --check 退出 0。新前端单元回归、主题 API 冒烟、主题浏览器流程及
+20 表备份核对已接入 CI；尚未推送，以上结果不等于远程 CI 成功。

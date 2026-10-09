@@ -1,4 +1,5 @@
 ---
+import Icon from '../components/ui/Icon.astro';
 import BaseLayout from './BaseLayout.astro';
 import { serverGet, type Session } from '../lib/api';
 interface Props { title: string }
@@ -9,17 +10,17 @@ try { session = await serverGet<Session>('/auth/session', { headers: { cookie } 
 const admin = session?.user?.role === 'admin';
 const current = Astro.url.pathname;
 const links = [
-  { href: '/admin/posts', label: '文章' },
-  ...(admin ? [{ href: '/admin/pages', label: '页面' }, { href: '/admin/media', label: '媒体' }] : []),
-  { href: '/admin/comments', label: '评论' },
-  ...(admin ? [{ href: '/admin/users', label: '账号' }, { href: '/admin/settings', label: '设置' }] : []),
+  { href: '/admin/posts', label: '文章', icon: 'edit' },
+  ...(admin ? [{ href: '/admin/pages', label: '页面', icon: 'article' }, { href: '/admin/media', label: '媒体', icon: 'image' }] : []),
+  { href: '/admin/comments', label: '评论', icon: 'comment' },
+  ...(admin ? [{ href: '/admin/themes', label: '主题', icon: 'palette' }, { href: '/admin/users', label: '账号', icon: 'person' }, { href: '/admin/settings', label: '设置', icon: 'settings' }] : []),
 ];
 ---
 <BaseLayout title={title}>
   <div class="admin-shell">
     <div class="admin-bar">
-      <nav aria-label="后台导航">{links.map(link => <a href={link.href} aria-current={current.startsWith(link.href) ? 'page' : undefined} data-astro-prefetch="false" data-astro-reload={link.href === '/admin/settings' || undefined}>{link.label}</a>)}</nav>
-      {session?.user && <div class="admin-account"><span>{session.user.display_name}</span><button type="button" data-logout>退出登录</button></div>}
+      <nav aria-label="后台导航">{links.map(link => <a href={link.href} aria-current={current.startsWith(link.href) ? 'page' : undefined} data-astro-prefetch="false" data-astro-reload={link.href === '/admin/settings' || undefined}><Icon name={link.icon} />{link.label}</a>)}</nav>
+      {session?.user && <div class="admin-account"><span>{session.user.display_name}</span><button type="button" data-logout><Icon name="logout" />退出登录</button></div>}
     </div>
     <slot />
   </div>

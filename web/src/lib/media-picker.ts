@@ -1,3 +1,4 @@
+import { mediaMarkdown } from './media-markdown.mjs';
 import { clientGet, clientWrite } from './api';
 import { describeUploadFailure, MediaUploadError, uploadOriginal, type UploadContext } from './media-upload';
 import type { components } from './schema';
@@ -66,9 +67,7 @@ export function bindMediaPicker() {
     if (!item) return;
     const image = item.variants.at(-1);
     if (target.dataset.action === 'copy' && image) {
-      const description = (alt.value.trim() || '图片').replace(/[\r\n]/g, ' ').replace(/[\\\[\]]/g, '\\$&');
-      const url = image.url.replace(/[<>\s\\]/g, ch => encodeURIComponent(ch));
-      copyField.value = `![${description}](<${url}>)`;
+      copyField.value = mediaMarkdown(alt.value, image.url);
       root.querySelector<HTMLElement>('[data-copy-result]')!.hidden = false;
       try { await navigator.clipboard.writeText(copyField.value); libraryNotice.textContent = 'Markdown 图片链接已复制，返回正文粘贴即可。'; }
       catch {

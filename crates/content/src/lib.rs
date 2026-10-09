@@ -13,6 +13,8 @@ pub mod revisions;
 pub mod search;
 pub mod search_index;
 pub mod stats;
+pub mod theme_dto;
+pub mod themes;
 pub mod worker;
 
 use thiserror::Error;

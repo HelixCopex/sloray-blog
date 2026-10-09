@@ -60,9 +60,9 @@ fn render_settings(
 
     let body = format!(
         r#"{notice_html}
-<h1>设置</h1>
+<h1><svg class="icon" aria-hidden="true"><use href='#mi-settings'/></svg> 设置</h1>
 <p class="sub">已登录：{who}（{role}）</p>
-<nav aria-label="后台导航"><a href="/admin/posts">文章</a> · <a href="/admin/pages">页面</a> · <a href="/admin/media">媒体</a> · <a href="/admin/comments">评论</a> · <a href="/admin/users">账号</a> · <a href="/admin/settings" aria-current="page">设置</a></nav>
+<nav class="settings-nav" aria-label="后台导航"><a href="/admin/posts">文章</a> · <a href="/admin/pages">页面</a> · <a href="/admin/media">媒体</a> · <a href="/admin/comments">评论</a> · <a href="/admin/themes">主题</a> · <a href="/admin/users">账号</a> · <a href="/admin/settings" aria-current="page">设置</a></nav>
 
 <form method="post" action="/admin/settings">
   <fieldset>
@@ -107,11 +107,11 @@ fn render_settings(
     <label for="cdn_token">CDN 清理 API Token（留空保持）</label><input id="cdn_token" name="cloudflare_api_token" type="password" autocomplete="off">
     <label><input type="checkbox" name="clear_cdn" value="true">移除 CDN 清理配置</label>
   </fieldset>
-  <button type="submit">保存</button>
+  <button type="submit"><svg class="icon" aria-hidden="true"><use href='#mi-save'/></svg> 保存</button>
 </form>
 
 <form method="post" action="/logout" style="margin-top:1.5rem">
-  <button class="secondary" type="submit">退出登录</button>
+  <button class="secondary" type="submit"><svg class="icon" aria-hidden="true"><use href='#mi-logout'/></svg> 退出登录</button>
 </form>"#,
         notice_html = notice_html,
         who = html::escape(&user.display_name),

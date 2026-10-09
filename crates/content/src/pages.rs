@@ -163,6 +163,32 @@ pub async fn delete(db: &DatabaseConnection, actor: Actor, id: Uuid, version: i3
 mod tests {
     use super::*;
     #[test]
+    fn unicode_titles_and_markdown_byte_limits_are_enforced() {
+        let input = WritePage {
+            slug: "合法页面".into(),
+            title: "文".repeat(200),
+            summary: "摘".repeat(1000),
+            body_md: "x".repeat(512_000),
+            status: "published".into(),
+            show_in_nav: true,
+            nav_order: i32::MIN,
+            version: None,
+        };
+        assert!(validate(&input).is_ok());
+        let mut invalid = input;
+        invalid.title.push('文');
+        assert!(validate(&invalid).is_err());
+        invalid.title = " ".into();
+        assert!(validate(&invalid).is_err());
+        invalid.title = "合法".into();
+        invalid.body_md.push('文');
+        assert!(validate(&invalid).is_err());
+        invalid.body_md.clear();
+        invalid.status = "scheduled".into();
+        assert!(validate(&invalid).is_err());
+    }
+
+    #[test]
     fn page_paths_cannot_shadow_system_routes() {
         let mut input = WritePage {
             slug: "about".into(),

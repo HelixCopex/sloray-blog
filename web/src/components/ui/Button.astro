@@ -1,0 +1,6 @@
+---
+import Icon from './Icon.astro';
+interface Props { href?: string; icon?: string; variant?: 'filled' | 'tonal' | 'text'; reload?: boolean }
+const { href, icon, variant = 'filled', reload } = Astro.props;
+---
+{href ? <a class:list={['button-link', variant]} href={href} data-astro-prefetch={href.startsWith('/admin/') ? 'false' : undefined} data-astro-reload={reload}>{icon && <Icon name={icon} />}<slot /></a> : <button type="button" class={variant}>{icon && <Icon name={icon} />}<slot /></button>}

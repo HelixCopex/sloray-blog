@@ -8,6 +8,7 @@ pub mod search;
 pub mod session;
 pub mod site;
 pub mod site_pages;
+pub mod themes;
 pub mod users;
 
 use axum::{
@@ -42,6 +43,7 @@ pub fn build(state: AppState) -> Router {
     Router::new()
         .merge(content::router())
         .merge(site_pages::router())
+        .merge(themes::router())
         .merge(activity::router())
         .merge(media::router())
         .route("/api/v1/site", get(site::site))

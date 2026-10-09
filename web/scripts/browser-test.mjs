@@ -1,5 +1,6 @@
 import { chromium } from 'playwright';
 import fs from 'node:fs';
+import { testThemes } from './theme-browser.mjs';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const axeSource = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
@@ -18,7 +19,7 @@ function check(value, message) { if (!value) throw new Error(message); }
 async function audit() {
   await page.evaluate(axeSource);
   const result = await page.evaluate(async () => window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a','wcag2aa','wcag21aa'] } }));
-  check(result.violations.length === 0, JSON.stringify(result.violations.map(v => ({ id:v.id, targets:v.nodes.map(n => n.target) }))));
+  check(result.violations.length === 0, JSON.stringify(result.violations.map(v => ({ id:v.id, targets:v.nodes.map(n => ({target:n.target,summary:n.failureSummary})) }))));
   check(await page.locator('h1').count() === 1, 'single h1 required');
 }
 try {
@@ -207,6 +208,7 @@ try {
   await page.getByRole('button', {name:'删除页面',exact:true}).click();
   await page.waitForURL('**/admin/pages');
   check(await page.locator('.content-list').getByRole('link', {name:'浏览器自定义页面',exact:true}).count() === 0, 'deleted page remains in admin list');
+  await testThemes(page, context, origin, audit);
   await page.getByRole('button', {name:'退出登录',exact:true}).click();
   await page.waitForURL('**/login');
   await page.goto(origin);

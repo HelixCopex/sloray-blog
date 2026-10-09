@@ -1,4 +1,6 @@
 ---
+import PageHeader from '../../../components/ui/PageHeader.astro';
+import Button from '../../../components/ui/Button.astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import { serverGet, type Session, type PostPage } from '../../../lib/api';
 Astro.response.headers.set('Cache-Control', 'no-store');
@@ -13,8 +15,8 @@ try {
 } catch { failed = true; Astro.response.status = 503; }
 ---
 <AdminLayout title="文章管理">
-  <h1>文章管理</h1>
-  <p><a class="button-link" href="/admin/posts/new" data-astro-prefetch="false" data-astro-reload>新建文章</a></p>
+  <PageHeader title="文章管理" />
+  <p><Button href="/admin/posts/new" icon="add" reload>新建文章</Button></p>
   {failed ? <p role="alert">服务暂时不可用，请稍后重试。</p> : <>
     {!page?.items.length && <p class="card">还没有文章，点击“新建文章”开始写作。</p>}
     <ul class="content-list">{page?.items.map(post => <li><div><a href={`/admin/posts/${post.id}`} data-astro-prefetch="false" data-astro-reload>{post.title}</a><p class="hint">{{ draft: '草稿', published: '已发布', scheduled: '定时发布' }[post.status]} · 版本 {post.version} · 更新于 {new Date(post.updated_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}</p></div>{post.status === 'published' && <a href={`/posts/${encodeURIComponent(post.slug)}`} target="_blank" rel="noopener">查看文章</a>}</li>)}</ul>

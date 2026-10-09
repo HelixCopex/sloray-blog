@@ -13,7 +13,8 @@
     "check": "astro check",
     "start": "node ./dist/server/entry.mjs",
     "api:generate": "openapi-typescript ../docs/api/openapi.json --output src/lib/schema.ts",
-    "api:check": "openapi-typescript ../docs/api/openapi.json --output src/lib/schema.ts --check"
+    "api:check": "openapi-typescript ../docs/api/openapi.json --output src/lib/schema.ts --check",
+    "test": "node tests/frontend.test.mjs"
   },
   "dependencies": {
     "@astrojs/markdown-remark": "^7.3.2",

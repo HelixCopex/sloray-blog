@@ -7,6 +7,10 @@ from smoke_support import App, ROOT
 
 with App() as app:
     assert app.json('/api/v1/admin/posts','POST',{'slug':'backup','title':'恢复验证','body_md':'权威原文','status':'published'})[0]==201
+    package = app.json('/api/v1/theme', cookie=False)[2]['package']
+    package['css'] = '.hero { padding: 2rem; }'
+    theme = app.json('/api/v1/admin/themes', 'POST', {'package': package})[2]
+    assert app.json('/api/v1/admin/themes/active', 'PUT', {'theme_id': theme['id'], 'theme_version': theme['version'], 'version': 1})[0] == 200
     directory=app.root/'backups'
     env=app.env|{'SLORAY_DATABASE_URL':app.url,'BACKUP_DIR':str(directory),'RETAIN_DAYS':'14'}
     subprocess.check_call([str(ROOT/'deploy/scripts/backup-postgres.sh')],env=env)
@@ -19,9 +23,9 @@ with App() as app:
     app.sql(f'CREATE DATABASE "{name}" TEMPLATE template0 ENCODING \'UTF8\'',app.base)
     try:
         subprocess.check_call(['pg_restore','--exit-on-error','--no-owner','--no-privileges','--dbname',url,str(dump)],stdout=subprocess.DEVNULL)
-        for table in ['users','sessions','posts','post_revisions','tags','post_tags','comments','media','post_view_daily','post_stats','likes','outbox','request_limits','privacy_secrets','search_settings','media_uploads','pages','seaql_migrations']:
+        for table in ['users','sessions','posts','post_revisions','tags','post_tags','comments','media','post_view_daily','post_stats','likes','outbox','request_limits','privacy_secrets','search_settings','media_uploads','pages','themes','theme_settings','seaql_migrations']:
             sql=f'SELECT coalesce(jsonb_agg(row_to_json(t) ORDER BY row_to_json(t)::text)::text,\'[]\') FROM "{table}" t'
             assert app.sql(sql)==app.sql(sql,url),table
-        print('PASS 0600 逻辑备份、SHA-256 校验、空库完整恢复，18 张表内容与迁移记录逐表一致')
+        print('PASS 0600 逻辑备份、SHA-256 校验、空库完整恢复，20 张表内容与迁移记录逐表一致')
     finally:
         app.sql(f'DROP DATABASE "{name}" WITH (FORCE)',app.base)

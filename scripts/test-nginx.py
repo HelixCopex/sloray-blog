@@ -108,7 +108,7 @@ def main():
                     assert status == 200 and headers["X-Backend"].startswith("api"), (path, status, headers)
                     assert headers["X-Observed-IP"] == "127.0.0.1", headers
                     assert headers["Cache-Control"] == "no-store", headers
-                for path in ("/", "/about", "/admin/posts", "/_astro/test.js"):
+                for path in ("/", "/about", "/admin/posts", "/admin/themes", "/_server-islands/ThemeWorkbench?e=test&p=&s=", "/_astro/test.js"):
                     assert request(path)[1]["X-Backend"] == "web", path
                 print("PASS Nginx 配置、API/安装/登录/设置/SSR 分流、真实 IP 头覆盖")
                 servers[0].fail = True

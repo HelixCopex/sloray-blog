@@ -1,0 +1,7 @@
+---
+import { allPublicPages } from '../lib/pages';
+import type { PageSummary } from '../lib/api';
+let pages: PageSummary[] = [];
+try { pages = await allPublicPages(); } catch { /* 延迟区块不影响文章列表。 */ }
+---
+<section aria-label="独立页面"><h2>页面</h2><ul class="page-directory">{pages.map(page => <li><a href={`/${encodeURIComponent(page.slug)}`}>{page.title}</a></li>)}</ul></section>

@@ -25,5 +25,7 @@
 | [0018](0018-private-and-public-media-buckets.md) | 原图与公开派生图使用不同 bucket | 已接受 |
 | [0019](0019-linear-history-and-dev-releases.md) | 全部分支线性历史，dev 开发与维护者批准后的 main 快进发布 | 已接受 |
 
+| [0020](0020-data-themes-and-astro-islands.md) | JSON＋CSS 数据主题、Material 3 与 Astro 原生群岛 | 已接受 |
+
 配套文档：[deployment.md](../deployment.md)（部署手册）、
 [search.md](../search.md)（检索设计）、[media.md](../media.md)（媒体设计）。

@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "name": "静线 · 青绿",
+  "description": "Material 3 青绿配色与双列布局",
+  "palette": "teal",
+  "font": "sans",
+  "layout": {
+    "width": 1120,
+    "navigation": "top",
+    "posts": "cards",
+    "columns": 2,
+    "home_blocks": [
+      "hero",
+      "posts",
+      "pages"
+    ],
+    "hero_title": "记录当下，连接想法。",
+    "hero_description": "写作、分享，以及值得留下的讨论。",
+    "footer": "记录、分享与讨论"
+  },
+  "css": ".hero { border: 1px solid var(--primary); }"
+}

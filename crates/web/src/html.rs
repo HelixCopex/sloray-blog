@@ -51,51 +51,20 @@ pub fn page(title: &str, body: &str) -> String {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>{title}</title>
-<style>
-:root {{ color-scheme: light dark; }}
-* {{ box-sizing: border-box; }}
-body {{
-  margin: 0; padding: 2rem 1rem; line-height: 1.65;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Noto Sans SC", sans-serif;
-  background: #fdfdfc; color: #1a1a1a;
-}}
-main {{ max-width: 40rem; margin: 0 auto; }}
-h1 {{ font-size: 1.5rem; margin: 0 0 .25rem; }}
-h2 {{ font-size: 1.05rem; margin: 1.75rem 0 .5rem; }}
-p.sub {{ color: #5c5c5c; margin: 0 0 1.5rem; }}
-label {{ display: block; margin: .9rem 0 .25rem; font-size: .9rem; font-weight: 600; }}
-input, select {{
-  width: 100%; padding: .5rem .6rem; font: inherit;
-  border: 1px solid #d8d8d4; border-radius: 6px; background: #fff; color: inherit;
-}}
-.hint {{ color: #5c5c5c; font-size: .82rem; margin: .2rem 0 0; }}
-button {{
-  margin-top: 1.25rem; padding: .55rem 1.1rem; font: inherit; font-weight: 600;
-  border: 0; border-radius: 6px; background: #2b6cb0; color: #fff; cursor: pointer;
-}}
-button.secondary {{ background: #e8e8e4; color: #1a1a1a; }}
-fieldset {{ border: 1px solid #e3e3e0; border-radius: 8px; padding: 1rem 1.1rem .4rem; margin: 1.5rem 0 0; }}
-legend {{ padding: 0 .4rem; font-size: .85rem; font-weight: 600; color: #5c5c5c; }}
-.notice {{ padding: .6rem .8rem; border-radius: 6px; border: 1px solid; margin: 1rem 0; }}
-.notice.ok {{ border-color: #2f855a; color: #2f855a; }}
-.notice.warn {{ border-color: #b7791f; color: #b7791f; }}
-.notice.err {{ border-color: #c53030; color: #c53030; }}
-code {{ background: rgba(0,0,0,.06); padding: .1em .35em; border-radius: 4px; }}
-footer {{ margin-top: 2.5rem; color: #5c5c5c; font-size: .8rem; }}
-@media (prefers-color-scheme: dark) {{
-  body {{ background: #16161a; color: #eaeaea; }}
-  p.sub, .hint, footer, legend {{ color: #a0a0a0; }}
-  input, select {{ background: #1e1e24; border-color: #2c2c33; }}
-  button.secondary {{ background: #2c2c33; color: #eaeaea; }}
-  fieldset {{ border-color: #2c2c33; }}
-  code {{ background: rgba(255,255,255,.1); }}
-}}
+<style>{css}
+.skip-link {{ position: absolute; left: -10000px; }} .skip-link:focus {{ left: 1rem; }}
+main {{ width: min(100%, 760px); margin: 2rem auto; padding: 1.5rem; }}
+.settings-nav {{ display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }}
+.settings-nav a {{ min-height: 48px; display: inline-flex; align-items: center; padding: .5rem; }}
+footer {{ margin-top: 2rem; color: var(--fg-muted); font-size: .85rem; }}
 </style>
 </head>
-<body><main>
+<body>{icons}<a class="skip-link" href='#content'>跳到内容</a><main id="content">
 {body}
 <footer>sloray-blog · <code>{version}</code></footer>
 </main></body></html>"#,
+        css = include_str!("../../../web/src/styles/material.css"),
+        icons = include_str!("../../../web/src/assets/material-icons.svg"),
         title = escape(title),
         body = body,
         version = env!("CARGO_PKG_VERSION"),

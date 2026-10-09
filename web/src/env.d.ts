@@ -13,4 +13,4 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
-declare namespace App { interface Locals { publicSiteUrl?: string } }
+declare namespace App { interface Locals { publicSiteUrl?: string; theme?: import('./lib/schema').components['schemas']['ThemePackage'] } }

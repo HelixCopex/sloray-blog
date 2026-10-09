@@ -1,4 +1,6 @@
 ---
+import PageHeader from '../../components/ui/PageHeader.astro';
+import Icon from '../../components/ui/Icon.astro';
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { serverGet, type Session } from '../../lib/api';
 import type { components } from '../../lib/schema';
@@ -15,12 +17,12 @@ try {
 } catch { Astro.response.status = 503; }
 ---
 <AdminLayout title="评论审核">
-  <h1>评论审核</h1>
+  <PageHeader title="评论审核" />
   <nav aria-label="评论状态"><a href="?status=pending">待审核</a> · <a href="?status=approved">已通过</a> · <a href="?status=spam">垃圾评论</a></nav>
   <p role="status" data-moderation-notice></p>
   {comments ? <ul data-moderation>{comments.items.map(comment => <li data-id={comment.id}>
     <p><strong>{comment.author_name}</strong> · {comment.status}</p><p class="comment-body">{comment.body_md}</p>
-    <button data-status="approved">通过</button> <button data-status="spam">标记垃圾</button> <button data-status="pending">移回待审核</button>
+    <button data-status="approved"><Icon name="check" />通过</button> <button data-status="spam"><Icon name="delete" />标记垃圾</button> <button data-status="pending"><Icon name="comment" />移回待审核</button>
   </li>)}</ul> : <p role="alert">评论暂时不可用。</p>}
   {comments?.next_cursor && <a href={`?status=${encodeURIComponent(status)}&cursor=${encodeURIComponent(comments.next_cursor)}`}>下一页</a>}
 </AdminLayout>

@@ -58,12 +58,13 @@ Rust 网络依赖统一走 rustls；不用 OpenSSL/native-tls，也没有 git �
 
 原始 12 张业务表不改历史迁移；新增 expand 迁移增加
 `privacy_secrets`、`request_limits`、`search_settings`、`media_uploads`，
-另以 expand 迁移增加独立 `pages` 表，合计 17 张业务表，加 `seaql_migrations` 为 18 张表。
+另以 expand 迁移增加独立 `pages` 表，再以第六条 expand 迁移增加主题库与启用快照，合计 19 张业务表，加 `seaql_migrations` 为 20 张表。
 
 | 数据 | 实现 |
 |---|---|
 | users / sessions | 邮箱小写、admin/author 角色；Argon2id；会话 token 仅存哈希并可撤销 |
 | posts / post_revisions | UUIDv7；版本条件更新；每次编辑与修订在同一事务；删除为软删除 |
+| themes / theme_settings | 管理员主题库与独立发布快照、乐观版本、恢复默认和 outbox purge（ADR-0020） |
 | pages | 管理员维护独立页面；草稿/发布、导航显示与排序、版本条件更新和软删除 |
 | tags / post_tags | 稳定 slug、文章标签关联；不使用第二个权威索引 |
 | comments | 默认 pending；审核后公开；父评论同文章且祖先已通过，最大 5 层 |
@@ -135,7 +136,7 @@ ClientRouter 管理局部导航、历史与焦点。交互绑定 `astro:page-loa
 媒体删除立即在 API 隐藏并移除封面，异步删对象及清 CDN，失败可重试。
 
 SSR 从 `/api/v1/site` 读取运行时站点地址，用于 canonical、RSS、sitemap 与 JSON-LD。
-构建期站点地址只作为退路；预渲染的 404 使用构建期值。
+构建期站点地址只作为退路；404 也动态读取站点地址和公开主题。
 
 ## 6. 安全与配置
 
@@ -191,3 +192,5 @@ CI 使用 PostgreSQL 18 与匹配版本客户端，另有隔离 PITR job；
 明确不做微服务、消息中间件、K8s、Redis、独立搜索引擎或 API 本地文件存储。
 没有在真实 Debian VPS、线上 R2/Cloudflare 或远程 GitHub Actions 上执行的验证，
 不能由本地通过推断。原生扩展兼容性依赖宿主，应用分词是可用的无扩展退路。
+
+主题包、原生交互组件与服务端群岛的边界见 [ADR-0020](adr/0020-data-themes-and-astro-islands.md) 和 [主题手册](themes.md)。

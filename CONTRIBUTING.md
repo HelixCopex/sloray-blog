@@ -56,6 +56,7 @@ cargo test --locked --workspace
 (
   cd web
   pnpm run api:check
+  pnpm run test
   pnpm run check
   pnpm run build
 )

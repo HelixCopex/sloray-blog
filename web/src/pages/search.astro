@@ -1,4 +1,6 @@
 ---
+import PageHeader from '../components/ui/PageHeader.astro';
+import Icon from '../components/ui/Icon.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { serverGet } from '../lib/api';
 import type { components } from '../lib/schema';
@@ -14,13 +16,13 @@ if (q.trim()) {
 }
 ---
 <BaseLayout title="搜索文章">
-  <h1>搜索文章</h1>
+  <PageHeader title="搜索文章" />
   <form method="get" action="/search" role="search">
     <label for="search-q">关键词</label><input id="search-q" type="search" name="q" value={q} required maxlength="300" />
-    <button>搜索</button><p class="hint">支持引号短语、OR 和 -排除词。</p>
+    <button><Icon name="search" />搜索</button><p class="hint">支持引号短语、OR 和 -排除词。</p>
   </form>
   {failed && <p role="alert">搜索暂时不可用。</p>}
   {results?.relaxed && <p>精确结果较少，以下也包括部分关键词匹配。</p>}
-  {results && (results.items.length ? <ul>{results.items.map(post => <li><h2><a href={`/posts/${encodeURIComponent(post.slug)}`}>{post.title}</a></h2><p>{post.summary}</p></li>)}</ul> : <p>没有找到相关的文章。</p>)}
+  {results && (results.items.length ? <ul class="post-list">{results.items.map(post => <li><article class="post-card"><h2><a href={`/posts/${encodeURIComponent(post.slug)}`}>{post.title}</a></h2><p>{post.summary}</p></article></li>)}</ul> : <p>没有找到相关的文章。</p>)}
   {results?.next_cursor && <a href={`?q=${encodeURIComponent(q)}&cursor=${encodeURIComponent(results.next_cursor)}`}>下一页</a>}
 </BaseLayout>

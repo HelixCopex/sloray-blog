@@ -128,3 +128,5 @@ CI 包含 Rust/前端/契约/依赖门禁、Postgres 18 集成验证、浏览器
 cargo deny --workspace --all-features --locked check licenses
 ./scripts/check-architecture.sh
 ```
+
+管理与设计：[后台操作](docs/admin.md)、[主题插件](docs/themes.md)（JSON＋CSS、隔离预览、启用快照、恢复默认）。

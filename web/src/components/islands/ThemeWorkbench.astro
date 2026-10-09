@@ -1,0 +1,30 @@
+---
+import { serverGet, type Session } from '../../lib/api';
+import type { components } from '../../lib/schema';
+import Icon from '../ui/Icon.astro';
+const cookie = Astro.request.headers.get('cookie') ?? '';
+let allowed = false;
+let themes: components['schemas']['Theme'][] = [];
+let state: components['schemas']['ThemeState'] | undefined;
+try {
+  allowed = (await serverGet<Session>('/auth/session', { headers: { cookie } })).user?.role === 'admin';
+  if (allowed) [themes, state] = await Promise.all([serverGet<components['schemas']['Theme'][]>('/admin/themes', { headers: { cookie } }), serverGet<components['schemas']['ThemeState']>('/theme')]);
+} catch { allowed = false; }
+---
+{allowed && state ? <theme-workbench data-themes={JSON.stringify(themes)} data-state={JSON.stringify(state)}>
+  <div class="card"><div class="actions"><button type="button" data-new><Icon name="add" />新建主题</button><button type="button" data-import><Icon name="upload" />导入主题包</button><button type="button" data-reset><Icon name="close" />恢复默认</button></div><input type="file" data-import-file accept="application/json,.json" hidden /><p data-active class="muted"></p><div class="theme-library" data-library role="group" aria-label="已保存的主题"></div></div>
+  <p role="status" aria-live="polite" class="theme-status" data-theme-status></p>
+  <div class="theme-workspace">
+    <form data-theme-form>
+      <fieldset><legend>主题信息</legend><label for="theme-name">主题名称</label><input id="theme-name" name="name" required maxlength="100" /><label for="theme-description">说明</label><textarea id="theme-description" name="description" maxlength="1000" rows="2" /></fieldset>
+      <fieldset><legend>颜色与排版</legend><div class="theme-fields"><div><label for="theme-palette">颜色方案</label><select id="theme-palette" name="palette"><option value="violet">紫罗兰</option><option value="teal">青绿</option><option value="blue">海蓝</option><option value="rose">玫瑰</option></select></div><div><label for="theme-font">字体</label><select id="theme-font" name="font"><option value="sans">无衬线</option><option value="serif">衬线</option><option value="mono">等宽</option></select></div></div></fieldset>
+      <fieldset><legend>页面布局</legend><div class="theme-fields"><div><label for="theme-width">内容宽度（640–1600 px）</label><input id="theme-width" name="width" type="number" min="640" max="1600" required /></div><div><label for="theme-columns">文章列数</label><select id="theme-columns" name="columns"><option value="1">1 列</option><option value="2">2 列</option><option value="3">3 列</option></select></div><div><label for="theme-navigation">导航位置</label><select id="theme-navigation" name="navigation"><option value="top">顶部</option><option value="side">侧边（移动端自动顶部）</option></select></div><div><label for="theme-posts">文章列表</label><select id="theme-posts" name="posts"><option value="cards">卡片</option><option value="list">列表</option></select></div></div>
+      <label for="theme-blocks">首页区块顺序（逗号分隔）</label><input id="theme-blocks" name="home_blocks" required /><p class="hint">hero：引言；posts：文章（必需）；pages：独立页面。调整顺序或移除可选区块。</p>
+      <label for="theme-hero-title">首页引言标题</label><input id="theme-hero-title" name="hero_title" maxlength="200" /><label for="theme-hero-description">首页引言说明</label><textarea id="theme-hero-description" name="hero_description" maxlength="1000" rows="2" /><label for="theme-footer">页脚文字</label><input id="theme-footer" name="footer" maxlength="300" /></fieldset>
+      <fieldset><legend>自定义 CSS</legend><label for="theme-css">公开站点样式</label><textarea id="theme-css" class="theme-code" name="css" spellcheck="false" rows="10" maxlength="65536" /><p class="hint">可使用 .hero、.post-card、.prose、header.site 等选择器。后台和登录页不受影响。</p></fieldset>
+      <div class="actions"><button type="submit"><Icon name="save" />保存主题</button><button type="button" data-enable><Icon name="check" />启用主题</button><button type="button" data-export><Icon name="download" />导出主题包</button><button type="button" class="danger" data-delete><Icon name="delete" />删除主题</button></div>
+      <p class="hint">保存后可预览；点击启用才会发布到全站。启用前请保存修改。</p>
+    </form>
+    <div><div class="picker-heading"><h2>实时预览</h2><label class="checkbox-label"><input type="checkbox" data-preview-dark />深色预览</label></div><iframe class="theme-preview" title="主题预览" sandbox="" referrerpolicy="no-referrer" data-theme-preview></iframe><noscript>主题编辑需要启用 JavaScript。</noscript></div>
+  </div>
+</theme-workbench> : <p role="alert">主题库暂时不可用，或当前账号没有管理权限。</p>}

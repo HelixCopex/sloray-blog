@@ -247,3 +247,7 @@ smoke-dev-start 使用同样的隔离数据库及本地模拟对象存储，实�
 开发模式必须让 Node 正常加载 CommonJS；发布模式仍打包依赖以便只携带 dist 运行。
 相关语义见 [Vite SSR 配置](https://vite.dev/config/ssr-options#ssr-noexternal)，
 CLI 管理见 [Astro 官方说明](https://docs.astro.build/en/reference/cli-reference/#astro-dev)。
+
+前端业务单元回归：`cd web && pnpm run test`（Markdown 清洗/标题、媒体 Markdown、诊断脱敏、API/CSRF/重试、主题预览）。
+真实数据库主题验证：`SLORAY_TEST_DATABASE_URL=... python3 scripts/smoke-themes.py`。
+浏览器验证会审计公开页、后台与主题工作台在移动、平板和桌面宽度的布局和 WCAG AA。

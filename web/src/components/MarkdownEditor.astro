@@ -1,4 +1,5 @@
 ---
+import Icon from './ui/Icon.astro';
 import { renderMarkdown } from '../lib/render-markdown';
 interface Props { value?: string }
 const { value = '' } = Astro.props;
@@ -6,9 +7,9 @@ const content = await renderMarkdown(value);
 ---
 <div class="markdown-editor" data-markdown-editor>
   <div class="editor-toolbar" aria-label="编辑器视图">
-    <button type="button" data-view="edit" aria-pressed="false">只编辑</button>
-    <button type="button" data-view="preview" aria-pressed="false">只预览</button>
-    <button type="button" data-view="split" aria-pressed="true">分栏</button>
+    <button type="button" data-view="edit" aria-pressed="false"><Icon name="edit" />只编辑</button>
+    <button type="button" data-view="preview" aria-pressed="false"><Icon name="preview" />只预览</button>
+    <button type="button" data-view="split" aria-pressed="true"><Icon name="article" />分栏</button>
     <span class="hint" data-preview-notice role="status" aria-live="polite"></span>
   </div>
   <div class="editor-columns" data-editor-columns data-view="split">

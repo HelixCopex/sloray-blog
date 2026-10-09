@@ -1,4 +1,5 @@
 ---
+import Icon from './ui/Icon.astro';
 import { serverGet } from '../lib/api';
 import type { components } from '../lib/schema';
 interface Props { id?: string | null; canChoose: boolean }
@@ -10,8 +11,8 @@ if (id) { try { cover = await serverGet(`/media/${id}`); } catch { /* 未就绪�
   <legend>文章封面</legend><input id="cover-media" name="cover_media_id" type="hidden" value={id ?? ''} />
   <img data-cover-preview class="cover" src={cover?.variants.at(-1)?.url} alt="当前文章封面" width="240" hidden={!cover?.variants.length} />
   <p data-cover-status>{id ? '已选择封面。' : '尚未选择封面。'}</p>
-  {canChoose && <button type="button" data-open-media>从媒体库选择封面</button>}
-  <button type="button" data-clear-cover hidden={!id}>移除封面</button>
+  {canChoose && <button type="button" data-open-media><Icon name="image" />从媒体库选择封面</button>}
+  <button type="button" data-clear-cover hidden={!id}><Icon name="close" />移除封面</button>
 </fieldset>
 <script>
   document.addEventListener('astro:page-load', () => {

@@ -1,4 +1,6 @@
 ---
+import PageHeader from '../../../components/ui/PageHeader.astro';
+import Icon from '../../../components/ui/Icon.astro';
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import MediaPicker from '../../../components/MediaPicker.astro';
 import MarkdownEditor from '../../../components/MarkdownEditor.astro';
@@ -27,22 +29,22 @@ const localDate = post?.published_at ? new Date(new Date(post.published_at).getT
 ---
 <AdminLayout title={post ? `编辑：${post.title}` : '新建文章'}>
   <p><a href="/admin/posts" data-astro-prefetch="false">返回文章列表</a></p>
-  <h1>{post ? '编辑文章' : '新建文章'}</h1>
+  <PageHeader title={post ? '编辑文章' : '新建文章'} />
   {failed ? <p role="alert">文章不可访问或服务暂时不可用。</p> : <>
     <form id="editor" data-kind="posts" data-id={id} data-version={post?.version ?? ''}>
       <label for="title">标题</label><input id="title" name="title" required maxlength="200" value={post?.title} />
       <label for="slug">文章地址</label><input id="slug" name="slug" required maxlength="160" value={post?.slug} />
       <p class="hint">公开地址为 /posts/文章地址；使用文字、数字、短横线或下划线。</p>
       <label for="summary">摘要</label><textarea id="summary" name="summary" maxlength="1000">{post?.summary}</textarea>
-      {admin && <button type="button" data-open-media>打开媒体选择器</button>}
+      {admin && <button type="button" data-open-media><Icon name="image" />打开媒体选择器</button>}
       <MarkdownEditor value={post?.body_md} />
       <label for="tags">标签（逗号分隔）</label><input id="tags" name="tags" value={post?.tags.map(t => t.slug).join(', ') ?? ''} />
       <label for="status">保存后状态</label><select id="status" name="status"><option value="draft" selected={!post || post.status === 'draft'}>草稿（仅后台可见）</option><option value="published" selected={post?.status === 'published'}>发布（立即公开）</option><option value="scheduled" selected={post?.status === 'scheduled'}>定时发布</option></select>
       <div data-publish-time><label for="published">发布时间（北京时间）</label><input id="published" name="published_at" type="datetime-local" value={localDate} /><p class="hint">定时发布必须填写未来时间；立即发布可以留空。</p></div>
       <CoverPicker id={post?.cover_media_id} canChoose={admin} />
-      <button type="submit">保存</button>
+      <button type="submit"><Icon name="save" />保存</button>
       <a data-public-link href={post ? `/posts/${encodeURIComponent(post.slug)}` : '#'} hidden={post?.status !== 'published'} target="_blank" rel="noopener">查看已发布文章</a>
-      {post && <button data-delete-content type="button" class="danger">删除文章</button>}
+      {post && <button data-delete-content type="button" class="danger"><Icon name="delete" />删除文章</button>}
       <p id="editor-notice" role="status" aria-live="polite"></p>
     </form>
     {admin && <MediaPicker allowCover />}

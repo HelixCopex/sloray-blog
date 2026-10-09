@@ -1,0 +1,6 @@
+---
+import Icon from './Icon.astro';
+interface Props { title: string; description?: string; icon?: string }
+const { title, description, icon = 'article' } = Astro.props;
+---
+<div class="page-heading"><div><p class="eyebrow"><Icon name={icon} /> 静线数据库</p><h1>{title}</h1>{description && <p class="muted">{description}</p>}</div><div class="heading-actions"><slot /></div></div>

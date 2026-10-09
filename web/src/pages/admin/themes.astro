@@ -1,0 +1,11 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import ThemeWorkbench from '../../components/islands/ThemeWorkbench.astro';
+import PageHeader from '../../components/ui/PageHeader.astro';
+import { serverGet, type Session } from '../../lib/api';
+let admin = false;
+try { admin = (await serverGet<Session>('/auth/session', { headers: { cookie: Astro.request.headers.get('cookie') ?? '' } })).user?.role === 'admin'; } catch { /* 显示登录入口。 */ }
+if (!admin) Astro.response.status = 403;
+---
+<AdminLayout title="主题 · 管理后台"><PageHeader title="主题" icon="palette" description="管理 JSON＋CSS 主题包，预览颜色、字体和页面布局。" />{admin ? <ThemeWorkbench server:defer><p role="status" slot="fallback">正在读取主题库…</p></ThemeWorkbench> : <p>请使用管理员账号<a href="/login" data-astro-reload>登录</a>。</p>}</AdminLayout>
+<script>import '../../lib/theme-workbench';</script>

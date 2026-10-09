@@ -1,0 +1,7 @@
+---
+import type { PostSummary } from '../lib/api';
+import Icon from './ui/Icon.astro';
+interface Props { post: PostSummary }
+const { post } = Astro.props;
+---
+<article class="post-card"><h2><a href={`/posts/${encodeURIComponent(post.slug)}`}>{post.title}</a></h2><p>{post.summary}</p><p class="meta"><Icon name="person" /> {post.author_name} · {post.published_at && <time datetime={post.published_at}>{new Date(post.published_at).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' })}</time>}</p></article>

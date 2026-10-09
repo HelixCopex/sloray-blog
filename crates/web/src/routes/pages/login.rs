@@ -27,13 +27,13 @@ fn render_login(notice: Option<(&str, &str)>, email: &str) -> String {
     let notice_html = notice.map(|(k, m)| html::notice(k, m)).unwrap_or_default();
     let body = format!(
         r#"{notice_html}
-<h1>登录</h1>
+<h1><svg class="icon" aria-hidden="true"><use href='#mi-person'/></svg> 登录</h1>
 <form method="post" action="/login">
   <label for="email">邮箱</label>
   <input id="email" name="email" type="email" required value="{email}">
   <label for="password">密码</label>
   <input id="password" name="password" type="password" required autocomplete="current-password">
-  <button type="submit">登录</button>
+  <button type="submit"><svg class="icon" aria-hidden="true"><use href='#mi-person'/></svg> 登录</button>
 </form>"#,
         notice_html = notice_html,
         email = html::escape(email),

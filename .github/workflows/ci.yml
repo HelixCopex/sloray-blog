@@ -153,6 +153,7 @@ jobs:
           python3 scripts/smoke-migrations.py
           python3 scripts/smoke-content.py
           python3 scripts/smoke-pages.py
+          python3 scripts/smoke-themes.py
           python3 scripts/smoke-activity.py
           python3 scripts/smoke-search.py
           python3 scripts/smoke-media.py
@@ -191,6 +192,9 @@ jobs:
 
       - name: 契约类型一致性
         run: pnpm run api:check
+
+      - name: 前端业务回归测试
+        run: pnpm run test
 
       - name: 类型检查
         run: pnpm run check

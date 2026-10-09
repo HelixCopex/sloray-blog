@@ -13,8 +13,8 @@ const devApi = process.env.SLORAY_API_INTERNAL_URLS?.split(',')[0]?.trim()
  * 代价是每个页面请求都要经过 Node 进程，因此读路径靠 HTTP 缓存兜底
  * （见页面里的 Cache-Control 设置与 deploy/nginx/sloray.conf）。
  *
- * `output: 'server'` 让所有页面默认 SSR；少数纯静态页
- * （404 等）用 `export const prerender = true` 单独静态化；普通页面由后台维护。
+ * `output: 'server'` 让所有页面 SSR，404 也读取公开主题；普通页面由后台维护。
+ * 非关键主题工作台/页面目录使用原生 server:defer 群岛。
  */
 export default defineConfig({
   output: 'server',

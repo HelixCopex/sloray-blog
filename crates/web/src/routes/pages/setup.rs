@@ -87,7 +87,7 @@ fn render_setup(mode: SetupMode, notice: Option<(&str, &str)>, form: Option<&Set
 
     let body = format!(
         r#"{banner}{notice_html}
-<h1>初始化 sloray-blog</h1>
+<h1><svg class="icon" aria-hidden="true"><use href='#mi-settings'/></svg> 初始化 sloray-blog</h1>
 <p class="sub">所有字段都可以之后再改（登录后进入「设置」）。</p>
 
 <form method="post" action="/setup">
@@ -156,7 +156,7 @@ fn render_setup(mode: SetupMode, notice: Option<(&str, &str)>, form: Option<&Set
     </p>
   </fieldset>
 
-  <button type="submit">完成初始化</button>
+  <button type="submit"><svg class="icon" aria-hidden="true"><use href='#mi-check'/></svg> 完成初始化</button>
 </form>"#,
         banner = banner,
         notice_html = notice_html,
