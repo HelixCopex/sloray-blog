@@ -46,6 +46,16 @@ CDN zone/token 成对可选；未配置时公开图使用 no-cache，避免无�
 查看 worker journal 与 outbox 的任务 ID、次数、available_at 排查。
 上传进度失败可重新选择文件重试，新许可不会覆盖原 key；未登记旧对象交 GC 处理。
 
+上传失败时展开“上传错误详情”，可查看失败阶段（许可/原图直传/登记/处理）、
+HTTP 状态、存储错误代码与请求编号（服务可读时）、上传编号、本站 Origin、存储端点
+和 PUT 所需请求头名称。相同诊断写入浏览器 Console 的 `[media-upload]` 日志，
+不包含签名 URL 的路径/查询参数、请求头值或存储错误响应原文。
+原图 PUT 从浏览器直接到存储服务，Rust 服务端日志不会记录这次请求。
+
+浏览器网络错误的 HTTP 状态为 0，不能从前端断定是 CORS、TLS、DNS 还是网络失败；
+即使存储服务实际返回 403，缺少 CORS 响应头时浏览器也会隐藏它。
+此时检查 Network 中的 OPTIONS/PUT 和 Console；不要把完整预签名 URL 贴到公开日志。
+
 ## 原图 bucket 的 CORS
 
 允许站点精确 origin、PUT 和签名使用的头。示例需替换域名：
@@ -55,13 +65,17 @@ CDN zone/token 成对可选；未配置时公开图使用 no-cache，避免无�
   "AllowedOrigins": ["https://blog.example.com"],
   "AllowedMethods": ["PUT"],
   "AllowedHeaders": ["content-type", "if-none-match", "x-amz-checksum-sha256", "x-amz-*"],
-  "ExposeHeaders": ["ETag"],
+  "ExposeHeaders": ["ETag", "x-amz-request-id"],
   "MaxAgeSeconds": 3600
 }]
 ```
 
 以真实浏览器和供应商 API 验收 CORS 与签名校验。
 CORS 不是读取权限控制，私有 bucket 仍须关闭所有公开入口。
+本地开发的来源应精确加入 `http://localhost:4321` 或 `http://127.0.0.1:4321`；
+两者是不同 origin，端口和协议也必须匹配，不能只允许线上域名或在 origin 后添加 `/`。
+在私有原图 bucket 的 Settings → CORS Policy 配置上述规则；公开派生 bucket 的规则
+不会应用到原图上传。对象凭据能读取 bucket 不代表已配置 CORS，桶配置需要另有管理权限。
 公开派生域使用正确 Content-Type=image/webp；只有 worker 凭据能写。
 
 ## 删除、缓存与重建

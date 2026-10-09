@@ -8,7 +8,11 @@ const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext();
 const page = await context.newPage();
 const errors = [];
+const mediaDiagnostics = [];
 page.on('pageerror', e => errors.push(e.message));
+page.on('console', message => {
+  if (message.text().startsWith('[media-upload]')) mediaDiagnostics.push(message.text());
+});
 function check(value, message) { if (!value) throw new Error(message); }
 async function audit() {
   await page.evaluate(axeSource);
@@ -62,8 +66,35 @@ try {
   await page.locator('#status').selectOption('published');
   await audit();
   await page.locator('#image-file').setInputFiles({name:'cover.png', mimeType:'image/png', buffer:fs.readFileSync(process.env.SLORAY_BROWSER_IMAGE)});
+  const uploadPattern = '**/test/private/**';
+  await page.route(uploadPattern, route => route.fulfill({status:403, contentType:'application/xml',
+    headers:{'Access-Control-Allow-Origin':'*'},
+    body:'<Error><Code>AccessDenied</Code><RequestId>test-storage-request</RequestId><Message>sensitive-message X-Amz-Signature=test-secret</Message></Error>'}));
+  await page.getByRole('button', {name:'上传所选图片',exact:true}).click();
+  await page.locator('[data-media-notice]').filter({hasText:'HTTP 403 / AccessDenied'}).waitFor();
+  check(await page.locator('[data-media-error]').isVisible(), 'HTTP failure details are hidden');
+  let details = await page.locator('[data-media-error-details]').textContent();
+  check(details.includes('失败阶段：原图上传') && details.includes('存储请求编号：test-storage-request'), 'HTTP diagnostic fields missing');
+  await page.unroute(uploadPattern);
+  await page.route(uploadPattern, route => route.abort('failed'));
+  await page.getByRole('button', {name:'上传所选图片',exact:true}).click();
+  await page.locator('[data-media-notice]').filter({hasText:'原图上传连接失败'}).waitFor();
+  details = await page.locator('[data-media-error-details]').textContent();
+  check(details.includes('HTTP 状态：0') && details.includes('本站 Origin：' + origin) && details.includes('CORS') && details.includes('if-none-match'), 'network/CORS diagnostic fields missing');
+  await page.unroute(uploadPattern);
+  await page.route('**/api/v1/admin/media/presign', route => route.fulfill({status:403, contentType:'application/json',
+    body:JSON.stringify({error:{code:'forbidden',message:'无权申请上传许可'}})}));
+  await page.getByRole('button', {name:'上传所选图片',exact:true}).click();
+  await page.locator('[data-media-notice]').filter({hasText:'申请上传许可：无权申请上传许可'}).waitFor();
+  details = await page.locator('[data-media-error-details]').textContent();
+  check(details.includes('HTTP 状态：403') && details.includes('API 错误代码：forbidden'), 'API failure stage/status missing');
+  await page.unroute('**/api/v1/admin/media/presign');
+  check(mediaDiagnostics.length === 3, 'failure diagnostics were not logged');
+  check(mediaDiagnostics.every(text => !/X-Amz-Signature=|X-Amz-Credential=|test-secret|sensitive-message/.test(text)), 'signed URL or raw error body leaked');
+  console.log('PASS 上传 HTTP/S3 错误与请求编号、网络/CORS 失败、API 失败阶段及诊断脱敏');
   await page.getByRole('button', {name:'上传所选图片',exact:true}).click();
   await page.getByRole('button', {name:'设为封面',exact:true}).waitFor({state:'visible',timeout:70000});
+  check(!await page.locator('[data-media-error]').isVisible(), 'retry retained stale failure details');
   await page.getByRole('button', {name:'设为封面',exact:true}).click();
   check(await page.locator('#cover-media').inputValue(), 'cover was not selected');
   await page.getByRole('button', {name:'保存',exact:true}).click();

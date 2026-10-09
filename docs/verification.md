@@ -352,3 +352,53 @@ PASS 开发数据库首次初始化、TCP 密码连接、私有权限、重复�
 
 Astro build 仍有此前记录的 5 条上游 MODULE_LEVEL_DIRECTIVE 警告，构建返回 0。
 本次只修复 CI/演练脚本和对应说明，未递增版本号。
+
+## 9. 原图上传失败诊断（2026-10-09）
+
+本地开发上传显示“上传连接失败”。运行中的 API/Web 将输出写到终端，未保存可回溯
+的服务日志文件；原图 PUT 从浏览器直达 R2，也不会经过 API 服务的请求日志。
+只读检查实际配置的两个 bucket，并发送不创建对象的 CORS 预检，实际结果：
+
+```text
+ListObjectsV2(max_keys=0) 原图桶 HTTP 200
+ListObjectsV2(max_keys=0) 派生桶 HTTP 200
+OPTIONS Origin=http://localhost:4321 HTTP 403，无 Access-Control-Allow-* 响应头
+OPTIONS Origin=http://127.0.0.1:4321 HTTP 403，无 Access-Control-Allow-* 响应头
+```
+
+仅请求 content-type，以及加入 if-none-match/校验和头的预检均被拒绝。
+维护者确认原图桶尚未配置 CORS，选择稍后配置，先完成报错改进。
+对象凭据可以读取两个桶，不等于有修改/读取桶配置的权限；GetBucketCors 返回 403。
+这些只读检查未上传真实对象，也没有验证凭据的写入权限。
+
+前端新增失败阶段、HTTP 状态、存储错误代码/请求编号（浏览器可读时）、上传编号、
+本站 Origin、仅保留 origin 的存储端点和请求头名称。状态 0 提示可能是 CORS/网络/TLS，
+不将隐藏的 HTTP 错误推断为已知状态。页面可展开详情，Console 记录相同的脱敏诊断；
+不打印预签名路径/查询参数、头值或存储返回的 Message/响应原文。
+
+Chromium 与隔离数据库/模拟存储实测拒绝 PUT（HTTP 403 / AccessDenied）、网络失败、
+申请许可 API 403、诊断脱敏和失败后重新上传成功，实际输出：
+
+```text
+PASS 浏览器局部导航、前进后退、评论提交、中文搜索、SEO 与公开页 axe 检查
+PASS 上传 HTTP/S3 错误与请求编号、网络/CORS 失败、API 失败阶段及诊断脱敏
+PASS HTML 登录、后台连续保存、跨域直传与封面展示、点赞、审核、删除媒体及管理页 axe 检查
+```
+
+提交前 fmt、clippy、workspace 测试（53 passed / 0 failed）、架构与依赖门禁、
+前端 api:check/check/build 和上述真实浏览器检查通过，实际输出摘录：
+
+```text
+Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.65s
+advisories ok, bans ok, licenses ok, sources ok
+结果：全部通过
+Result (28 files):
+- 0 errors
+- 0 warnings
+- 0 hints
+Server built in 1.32s
+Complete!
+```
+
+build 仍有此前记录的 5 条上游 MODULE_LEVEL_DIRECTIVE 警告，返回 0。
+本次未修改 R2 CORS、运行配置、数据库 schema 或版本号。

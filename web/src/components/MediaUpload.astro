@@ -3,12 +3,14 @@
   <label for="image-file">选择图片</label><input id="image-file" type="file" accept="image/png,image/jpeg,image/webp" />
   <progress data-progress max="100" value="0" aria-label="上传进度" hidden />
   <p data-media-notice role="status" aria-live="polite"></p>
+  <details data-media-error hidden><summary>上传错误详情</summary><pre data-media-error-details></pre></details>
   <button type="button" data-upload>上传所选图片</button>
   <button type="button" data-cover hidden>设为封面</button>
   <button type="button" data-insert hidden>插入正文</button>
 </fieldset>
 <script>
   import { clientGet, clientWrite } from '../lib/api';
+  import { describeUploadFailure, MediaUploadError, uploadOriginal, type UploadContext } from '../lib/media-upload';
   import type { components } from '../lib/schema';
   type Media = components['schemas']['Media'];
   type Presigned = components['schemas']['Presigned'];
@@ -22,30 +24,33 @@
     const insert = field.querySelector<HTMLButtonElement>('[data-insert]')!;
     const progress = field.querySelector<HTMLProgressElement>('progress')!;
     const notice = field.querySelector<HTMLElement>('[data-media-notice]')!;
+    const errorPanel = field.querySelector<HTMLDetailsElement>('[data-media-error]')!;
+    const errorDetails = field.querySelector<HTMLElement>('[data-media-error-details]')!;
     let media: Media | undefined;
     upload.addEventListener('click', async () => {
+      errorPanel.hidden = true; errorPanel.open = false; errorDetails.textContent = '';
       const file = input.files?.[0];
       if (!file) { notice.textContent = '请先选择图片。'; return; }
       if (file.size > 10 * 1024 * 1024) { notice.textContent = '图片超过 10 MiB。'; return; }
       upload.disabled = true; cover.hidden = true; insert.hidden = true;
+      notice.textContent = '准备上传图片…';
+      progress.value = 0;
+      const context: UploadContext = { stage: '校验图片', origin: window.location.origin, contentType: file.type, sizeBytes: file.size };
       try {
         const sha256 = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', await file.arrayBuffer())), b => b.toString(16).padStart(2, '0')).join('');
+        context.stage = '申请上传许可';
         const signed = await clientWrite<Presigned>('/admin/media/presign', 'POST', { content_type: file.type, size_bytes: file.size, sha256 });
+        context.uploadId = signed.upload_id ?? undefined;
+        context.uploadUrl = signed.upload_url ?? undefined;
+        context.headers = signed.headers;
         media = signed.media ?? undefined;
         if (!media) {
-          await new Promise<void>((resolve, reject) => {
-            const request = new XMLHttpRequest();
-            request.open('PUT', signed.upload_url!);
-            for (const [name, value] of Object.entries(signed.headers)) request.setRequestHeader(name, value);
-            progress.hidden = false;
-            request.upload.onprogress = event => { if (event.lengthComputable) progress.value = event.loaded * 100 / event.total; };
-            request.onload = () => request.status >= 200 && request.status < 300 ? resolve() : reject(new Error(`上传失败（${request.status}），可重新点击上传重试。`));
-            request.onerror = () => reject(new Error('上传连接失败，请重试。'));
-            request.timeout = 120000;
-            request.ontimeout = () => reject(new Error('上传超时，请重试。'));
-            request.send(file);
-          });
+          context.stage = '原图上传';
+          progress.hidden = false;
+          await uploadOriginal(signed.upload_url!, file, signed.headers, percent => { progress.value = percent; });
+          context.stage = '登记媒体';
           media = await clientWrite<Media>('/admin/media', 'POST', { upload_id: signed.upload_id });
+          context.stage = '图片处理';
           for (let i = 0; i < 60 && !media.ready; i++) {
             notice.textContent = '上传完成，正在处理图片…';
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -53,10 +58,17 @@
             media = await clientGet<Media>(`/admin/media/${media.id}`);
           }
         }
-        if (!media.ready) throw new Error('图片仍在后台处理，可稍后到媒体管理页查看。');
-        if (!media.variants.length) throw new Error('请先在设置中配置媒体公开地址。');
+        context.stage = '检查图片就绪';
+        if (!media.ready) throw new MediaUploadError('图片仍在后台处理，可稍后到媒体管理页查看。', 'processing');
+        if (!media.variants.length) throw new MediaUploadError('请先在设置中配置媒体公开地址。', 'processing');
         notice.textContent = '图片已就绪。'; cover.hidden = false; insert.hidden = false;
-      } catch (error) { notice.textContent = error instanceof Error ? error.message : '上传失败'; }
+      } catch (error) {
+        const report = describeUploadFailure(error, context);
+        notice.textContent = report.message;
+        errorDetails.textContent = report.details;
+        errorPanel.hidden = false;
+        console.error('[media-upload]', report.details);
+      }
       finally { upload.disabled = false; progress.hidden = true; }
     });
     cover.addEventListener('click', () => { if (media) { (document.querySelector('#cover-media') as HTMLInputElement).value = media.id; notice.textContent = '封面已选择，保存文章后生效。'; } });
@@ -68,3 +80,6 @@
     });
   });
 </script>
+<style>
+  [data-media-error-details] { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>
