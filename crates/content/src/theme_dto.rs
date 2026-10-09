@@ -14,8 +14,21 @@ pub struct ThemePackage {
     pub palette: String,
     pub font: String,
     pub layout: ThemeLayout,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub background: Option<ThemeBackground>,
     #[serde(default)]
     pub css: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ThemeBackground {
+    /// 空字符串使用纯色；其他值仅允许同源绝对路径或 HTTPS 图片。
+    pub image_url: String,
+    pub blur: u32,
+    /// 主题表面颜色遮罩的百分比，0–100。
+    pub overlay: u32,
+    pub panel_blur: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -73,6 +86,7 @@ impl Default for ThemePackage {
                 home_rows: vec![],
             },
             css: String::new(),
+            background: None,
         }
     }
 }

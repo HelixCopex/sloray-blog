@@ -2,7 +2,7 @@
   .home-stream { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 2.5rem; }
   .home-row { min-width: 0; }
   .home-row .hero { margin: 0; }
-  .hero { position: relative; overflow: hidden; background: radial-gradient(ellipse at 90% 10%, color-mix(in srgb, var(--primary) 20%, transparent), transparent 65%), color-mix(in srgb, var(--surface-container) 95%, transparent); color: var(--fg); border: 1px solid var(--outline-variant); box-shadow: 0 0 50px color-mix(in srgb, var(--primary) 7%, transparent); }
+  .hero { position: relative; overflow: hidden; background: color-mix(in srgb, var(--surface-container) 95%, transparent); color: var(--fg); border: 1px solid var(--outline-variant); box-shadow: 0 4px 24px rgb(0 0 0 / .05); }
   .hero h1 { max-width: 19ch; font-size: clamp(2.25rem, 5vw, 4.25rem); letter-spacing: -.04em; }
   .hero>p:not(.eyebrow) { color: var(--fg-muted); margin-bottom: 1.75rem; }
   .read-arrow { rotate: 180deg; }
@@ -18,8 +18,11 @@
   .home-widget[aria-busy="true"] .widget-refresh .icon { animation: widget-spin 1s linear infinite; }
   .post-card { background: color-mix(in srgb, var(--surface-container) 90%, transparent); }
   @supports (backdrop-filter: blur(16px)) {
-    .home-widget,.post-card,.hero { backdrop-filter: blur(16px) saturate(1.15); }
+    .home-widget,.post-card,.hero { backdrop-filter: blur(var(--panel-blur, 24px)) saturate(1.15); }
   }
+  body[data-background="image"] main { background: color-mix(in srgb, var(--surface) 95%, transparent); border: 1px solid var(--outline-variant); border-radius: 28px; }
+  body[data-background="image"] .brand { background: color-mix(in srgb, var(--surface) 95%, transparent); border-radius: 28px; padding: .25rem; }
+  @media (min-width: 1000px) { body[data-background="image"] main { margin-block: 2rem; } }
   body[data-post-style="list"] .post-card { padding: 1.5rem 1.75rem; }
   .empty-state { text-align: center; padding: 2rem; border: 1px dashed var(--outline-variant); border-radius: 24px; color: var(--fg-muted); }
   .empty-state>.icon { color: var(--primary); }

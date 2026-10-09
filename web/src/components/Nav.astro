@@ -26,16 +26,16 @@ const current = Astro.url.pathname;
 <nav id="site-navigation" aria-label="站点导航">
   {
     links.map(({ href, label, icon }) => (
-      <a href={href} data-astro-prefetch={href.startsWith('/admin/') ? 'false' : undefined} aria-current={(current === href || href === '/admin/posts' && current.startsWith('/admin/')) ? 'page' : undefined}>
-        <span class="dock-symbol"><Icon name={icon} /></span><span class="dock-label">{label}</span>
+      <a href={href} aria-label={label} title={label} data-astro-prefetch={href.startsWith('/admin/') ? 'false' : undefined} aria-current={(current === href || href === '/admin/posts' && current.startsWith('/admin/')) ? 'page' : undefined}>
+        <span class="dock-symbol"><Icon name={icon} /></span>
       </a>
     ))
   }
 </nav>
 <div class="dock-tools">
   <Appearance />
-  <button type="button" class="dock-tool text" data-back-top><Icon name="up" /><span>顶部</span></button>
-  <button type="button" class="dock-tool text dock-toggle" aria-expanded="false" aria-controls="site-navigation" data-dock-toggle><Icon name="expand" /><span>展开</span></button>
+  <button type="button" class="dock-tool text" aria-label="返回顶部" title="返回顶部" data-back-top><Icon name="up" /></button>
+  <button type="button" class="dock-tool text dock-toggle" aria-label="展开导航" title="展开导航" aria-expanded="false" aria-controls="site-navigation" data-dock-toggle><Icon name="expand" /></button>
 </div>
 </div>
 </site-dock>

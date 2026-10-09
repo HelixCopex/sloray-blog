@@ -5,7 +5,6 @@ const { minutes } = Astro.props;
 ---
 <reading-tools class="reading-tools">
   <div class="reader-bar"><span class="meta"><Icon name="reading" />约 {minutes} 分钟</span><label>字号<select data-reading-size aria-label="正文字号"><option value="1">标准</option><option value="1.12">舒适</option><option value="1.25">大字</option></select></label><button type="button" class="text" aria-pressed="false" data-reading-focus><Icon name="focus" />专注阅读</button></div>
-  <details class="reading-toc" hidden><summary>正文目录</summary><nav aria-label="正文目录"><ol data-reading-toc></ol></nav></details>
   <progress max="100" value="0" aria-label="阅读进度" data-reading-progress></progress>
   <p class="hint" role="status" aria-live="polite" data-reading-status></p>
 </reading-tools>

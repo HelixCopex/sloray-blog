@@ -197,3 +197,4 @@ CI 使用 PostgreSQL 18 与匹配版本客户端，另有隔离 PITR job；
 主题包、原生交互组件与服务端群岛的边界见 [ADR-0020](adr/0020-data-themes-and-astro-islands.md) 和 [主题手册](themes.md)。
 
 响应式 Dock、首页线性区块与可刷新组件域见 [ADR-0021](adr/0021-responsive-dock-and-home-composition.md)。
+纯图标 Dock、SSR 随动目录与主题背景参数见 [ADR-0022](adr/0022-icon-dock-following-toc-and-background.md)。

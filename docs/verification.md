@@ -751,3 +751,48 @@ PASS HTML 登录、后台连续保存、跨域直传与封面展示、点赞、�
 
 审计覆盖 360/768/1440px、深浅模式、手机折叠及展开状态和减少动态效果。
 截图使用隔离测试站点内容。以上为本地验收，未执行远程 push CI 或生产发布。
+
+
+## 纯图标 Dock、随动目录与背景设置（2026-10-10）
+
+使用已有 PostgreSQL 服务创建 UUID 临时库；没有对现有开发库执行迁移或写入测试内容。
+本次不增加数据库迁移或依赖。测试进程与临时库均由 smoke_support 清理。
+
+实际执行 fmt、clippy（workspace/all-targets，-D warnings）、workspace test、架构门禁、
+前端 api:check/test/check/build、OpenAPI validate/向后兼容检查、git diff --check，全部退出 0。
+Rust 非空测试组为 9/10/10/4/11/7/11，合计 62 项。实际输出摘录：
+
+```text
+ℹ tests 11
+ℹ pass 11
+ℹ fail 0
+Result (63 files):
+- 0 errors
+- 0 warnings
+- 0 hints
+[build] Complete!
+advisories ok, bans ok, licenses ok, sources ok
+结果：全部通过
+PASS OpenAPI 本地引用与唯一 operationId
+PASS OpenAPI 向后兼容性检查
+```
+
+构建仍有五条既有 MDX/HAST MODULE_LEVEL_DIRECTIVE 提示。
+部署切换/回滚脚本退出 0，实际输出“结果：全部通过”。
+smoke-themes.py 使用最新 Rust 二进制验证背景 URL/数值边界、鉴权/CSRF、并发版本、
+保存与启用快照、SSR/CSS、ETag 和恢复删除，退出 0。
+
+真实 Chromium smoke-browser.py 最终完整执行退出 0，实际输出摘录：
+
+```text
+PASS 文章/页面 SSR 目录、桌面随动/章节高亮、手机展开/锚点焦点/Escape、动态标题重载、3840px 宽度与无 JS 目录
+PASS 纯图标 Dock 展开/Escape、360/768/1440/3840 布局/axe、减少动态效果、群岛独立刷新、字号持久化与专注阅读
+PASS 浏览器局部导航、前进后退、评论提交、中文搜索、SEO 与公开页 axe 检查
+PASS 背景/遮罩/背景模糊/面板模糊预览与保存启用、导出导入、后台隔离及恢复纯色
+PASS HTML 登录、后台连续保存、跨域直传与封面展示、点赞、审核、删除媒体及管理页 axe 检查
+```
+
+浏览器回归也通过站点标识保存、Markdown/媒体/剪贴板、首页编排与主题导入导出、
+页面创建/发布/撤回/删除；深浅色、减少动态效果和宽主题 Dock 间距均覆盖。
+验证中修复了锚点小数像素高亮边界、Astro 自定义元素 hidden=false 的 SSR 隐藏问题，
+并为可横向滚动的代码块增加键盘焦点。以上为本地验证，未执行远程 push CI 或生产发布。

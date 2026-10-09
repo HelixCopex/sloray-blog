@@ -15,14 +15,6 @@ class ReadingTools extends HTMLElement {
       const value = focus.getAttribute('aria-pressed') !== 'true'; focus.setAttribute('aria-pressed', String(value));
       document.body.toggleAttribute('data-reading-focus', value);
     }, { signal });
-    const headings = [...prose.querySelectorAll<HTMLElement>('h2,h3,h4,h5,h6')];
-    const toc = this.querySelector('[data-reading-toc]')!;
-    headings.forEach((heading, i) => {
-      if (!heading.id) heading.id = `reading-heading-${i}`;
-      const li = document.createElement('li'), a = document.createElement('a');
-      a.href = `#${heading.id}`; a.textContent = heading.textContent; li.append(a); toc.append(li);
-    });
-    this.querySelector<HTMLDetailsElement>('details')!.hidden = headings.length === 0;
     const update = () => {
       const top = prose.getBoundingClientRect().top + scrollY;
       const span = prose.offsetHeight - innerHeight;

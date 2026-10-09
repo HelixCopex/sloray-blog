@@ -11,7 +11,8 @@ class SiteDock extends HTMLElement {
     const sync = () => {
       const open = expanded();
       toggle.setAttribute('aria-expanded', String(open));
-      toggle.querySelector('span')!.textContent = open ? '收起' : '展开';
+      toggle.setAttribute('aria-label', open ? '收起导航' : '展开导航');
+      toggle.title = open ? '收起导航' : '展开导航';
       const active = links.findIndex(link => link.getAttribute('aria-current') === 'page');
       links.forEach((link, i) => { link.hidden = mobile.matches && !open && i !== 0 && i !== (active > 1 ? active : 1); });
     };

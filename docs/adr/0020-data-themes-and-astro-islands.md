@@ -1,6 +1,7 @@
 # ADR-0020：数据主题包、Material 3 与 Astro 原生群岛
 
 - 状态：已接受
+- 预览背景图片资源部分 Superseded by [ADR-0022](0022-icon-dock-following-toc-and-background.md)。
 - 导航与首页编排部分 Superseded by [ADR-0021](0021-responsive-dock-and-home-composition.md)。
 - 日期：2026-10-09
 

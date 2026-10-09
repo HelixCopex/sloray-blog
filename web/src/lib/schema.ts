@@ -712,6 +712,19 @@ export interface components {
             /** Format: int32 */
             version: number;
         };
+        ThemeBackground: {
+            /** Format: int32 */
+            blur: number;
+            /** @description 空字符串使用纯色；其他值仅允许同源绝对路径或 HTTPS 图片。 */
+            image_url: string;
+            /**
+             * Format: int32
+             * @description 主题表面颜色遮罩的百分比，0–100。
+             */
+            overlay: number;
+            /** Format: int32 */
+            panel_blur: number;
+        };
         ThemeLayout: {
             /** Format: int32 */
             columns: number;
@@ -727,6 +740,7 @@ export interface components {
             width: number;
         };
         ThemePackage: {
+            background?: null | components["schemas"]["ThemeBackground"];
             css?: string;
             description?: string;
             font: string;

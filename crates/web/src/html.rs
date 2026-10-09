@@ -54,14 +54,14 @@ pub fn page(title: &str, body: &str) -> String {
 <style>{css}
 .skip-link {{ position: absolute; left: -10000px; }} .skip-link:focus {{ left: 1rem; }}
 main {{ width: min(100%, 760px); margin: 2rem auto; padding: 1.5rem; }}
-.settings-dock {{ position: fixed; z-index: 10; left: 1rem; top: 2rem; width: 180px; padding: .75rem; background: var(--surface-container); border: 1px solid var(--border); border-radius: 24px; box-shadow: 0 0 32px color-mix(in srgb,var(--primary) 12%,transparent); }}
-.settings-dock summary {{ display: none; cursor: pointer; padding: .5rem; min-height: 48px; }}
-.settings-nav {{ display: flex; flex-direction: column; gap: .25rem; }}
-.settings-nav a {{ min-height: 48px; display: inline-flex; gap: .75rem; align-items: center; padding: .5rem .75rem; border-radius: 16px; text-decoration: none; color: var(--fg-muted); }}
-.settings-nav a[aria-current] {{ background: var(--primary-container); color: var(--on-primary-container); }}
-body:has(.settings-dock) {{ padding-left: 200px; }}
-@supports (backdrop-filter: blur(20px)) {{ .settings-dock {{ background: color-mix(in srgb,var(--surface-container) 85%,transparent); backdrop-filter: blur(20px); }} }}
-@media (max-width: 999px) {{ body:has(.settings-dock) {{ padding-left: 0; padding-bottom: 12rem; }} .settings-dock {{ top: auto; bottom: calc(.75rem + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: min(440px,calc(100% - 1.5rem)); max-height: 60dvh; overflow: auto; }} .settings-dock summary {{ display: block; }} .settings-nav {{ flex-direction: row; flex-wrap: wrap; }} .settings-nav a {{ flex-direction: column; gap: .25rem; flex: 1 1 25%; font-size: .8rem; }} }}
+.settings-dock {{ position: fixed; z-index: 10; left: max(24px,calc((100vw - 1440px)/2)); top: 2rem; width: 76px; padding: 9px; background: var(--surface-container); border: 1px solid var(--outline); border-radius: 40px; box-shadow: 0 8px 32px rgb(0 0 0 / .16); }}
+.settings-dock summary {{ display: none; cursor: pointer; padding: .75rem; min-height: 48px; }}
+.settings-nav {{ display: flex; flex-direction: column; gap: 8px; }}
+.settings-nav a {{ min-height: 52px; height: 52px; width: 52px; display: grid; place-items: center; padding: 0; border-radius: 50%; background: var(--surface-high); text-decoration: none; color: var(--fg-muted); }}
+.settings-nav a[aria-current] {{ background: var(--on-surface); color: var(--surface); box-shadow: 0 0 24px rgb(255 255 255 / .12); }}
+body:has(.settings-dock) {{ padding-left: 112px; }}
+@supports (backdrop-filter: blur(20px)) {{ .settings-dock {{ background: color-mix(in srgb,var(--surface-container) 94%,transparent); backdrop-filter: blur(24px); }} }}
+@media (max-width: 999px) {{ body:has(.settings-dock) {{ padding-left: 0; padding-bottom: 12rem; }} .settings-dock {{ top: auto; bottom: calc(.75rem + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: min(350px,calc(100% - 1.5rem)); max-height: 60dvh; overflow: auto; }} .settings-dock summary {{ display: grid; place-items: center; }} .settings-nav {{ flex-direction: row; flex-wrap: wrap; justify-content: center; }} .settings-nav a {{ width: 48px; height: 48px; min-height: 48px; }} }}
 footer {{ margin-top: 2rem; color: var(--fg-muted); font-size: .85rem; }}
 </style>
 </head>

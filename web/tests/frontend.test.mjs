@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import ts from 'typescript';
-import { defaultTheme, themeCss, previewHtml } from '../src/lib/theme.mjs';
+import { defaultTheme, themeCss, previewHtml, backgroundCss } from '../src/lib/theme.mjs';
 import { mediaMarkdown } from '../src/lib/media-markdown.mjs';
 const require = createRequire(import.meta.url);
 const codeUrl = code => 'data:text/javascript;base64,' + Buffer.from(code).toString('base64');
@@ -33,6 +33,13 @@ test('Markdown headings saturate at h6 and plain text remains escaped', async ()
   const html = await markdown.renderMarkdown('###### 最深层\n\n&lt;script&gt;文字&lt;/script&gt;');
   assert.match(html, /<h6/); assert.doesNotMatch(html, /<h7|<script/);
 });
+test('SSR table of contents matches normalized heading depths, unique IDs and escaped text', async () => {
+  const article = await markdown.renderArticle('# 章节\n\n## 细节 `代码`\n\n# 章节\n\n## <坏标签>');
+  assert.deepEqual(article.headings.slice(0,3).map(h => [h.depth,h.text]), [[2,'章节'],[3,'细节 代码'],[2,'章节']]);
+  assert.notEqual(article.headings[0].slug, article.headings[2].slug);
+  for (const heading of article.headings) assert.ok(article.code.includes(`id="${heading.slug}"`));
+  assert.doesNotMatch(article.code, /<坏标签>/);
+});
 test('media clipboard links escape labels, multiline text and unsafe destination punctuation', async () => {
   const link = mediaMarkdown(' 图[片]\\\n换行 ', 'https://example.com/a b(1)<x>.webp');
   assert.equal(link, '![图\\[片\\]\\\\ 换行](<https://example.com/a%20b(1)%3Cx%3E.webp>)');
@@ -53,6 +60,21 @@ test('theme preview uses the chosen block order and escapes all HTML text', () =
 test('CSS cannot terminate style elements and theme dimensions stay bounded', () => {
   const p = structuredClone(defaultTheme); p.css = '</style><script>alert(1)</script>'; p.layout.width = Infinity; p.layout.columns = 100;
   const css = themeCss(p); assert.doesNotMatch(css, /</); assert.match(css, /--content-width:1600px/); assert.match(css, /--post-columns:3/);
+});
+test('background tokens reject active URLs, escape CSS strings and bound blur/overlay', () => {
+  for (const image_url of ['javascript:evil()','//evil.test/a','data:image/svg+xml,x','/\\evil'])
+    assert.match(backgroundCss({image_url}), /--background-image:none/);
+  const p = structuredClone(defaultTheme);
+  p.background = {image_url:'/image";color:red;/*</style>.webp',blur:100,overlay:200,panel_blur:-1};
+  const css = themeCss(p);
+  assert.match(css, /url\("\/image\\22 ;color:red/);
+  assert.doesNotMatch(css, /<|url\("\/image"/);
+  assert.match(css, /--background-blur:40px;--background-overlay:1;--panel-blur:0px/);
+  p.background.image_url = 'https://cdn.example/background.webp';
+  const html = previewHtml(p,'body{}');
+  assert.match(html, /img-src data: https:\/\/cdn.example\/background.webp;/);
+  assert.match(html, /default-src 'none'/);
+  assert.doesNotMatch(html, /img-src[^;]*https:;/);
 });
 test('composed home rows determine heading structure and escape widget text', () => {
   const p = structuredClone(defaultTheme);

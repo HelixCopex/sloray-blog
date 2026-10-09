@@ -45,6 +45,21 @@ pub fn validate(package: &ThemePackage) -> Result<()> {
         ));
     }
     validate_rows(&layout.home_rows)?;
+    if let Some(background) = &package.background {
+        let url = &background.image_url;
+        if background.blur > 40 || background.panel_blur > 40 || background.overlay > 100 {
+            return Err(Error::Validation(
+                "背景/面板模糊须为 0–40px，遮罩须为 0–100%".into(),
+            ));
+        }
+        if !url.is_empty() {
+            crate::site::validate("背景", Some(url)).map_err(|_| {
+                Error::Validation(
+                    "背景图片请使用 / 开头的同源路径或 HTTPS 地址（最多 2048 字节）".into(),
+                )
+            })?;
+        }
+    }
     Ok(())
 }
 
@@ -268,6 +283,46 @@ mod tests {
         let mut json = serde_json::to_value(ThemePackage::default()).unwrap();
         json["javascript"] = "alert(1)".into();
         assert!(serde_json::from_value::<ThemePackage>(json).is_err());
+    }
+    #[test]
+    fn backgrounds_are_optional_passive_and_bounded() {
+        let mut p = ThemePackage::default();
+        for url in ["", "/wallpaper.webp", "https://cdn.example/wallpaper.webp"] {
+            p.background = Some(ThemeBackground {
+                image_url: url.into(),
+                blur: 12,
+                overlay: 60,
+                panel_blur: 24,
+            });
+            assert!(validate(&p).is_ok());
+        }
+        for url in [
+            "javascript:alert(1)",
+            "data:image/svg+xml,x",
+            "//evil.test/a",
+            "/\\evil",
+            "https://a\n.test",
+        ] {
+            p.background.as_mut().unwrap().image_url = url.into();
+            assert!(validate(&p).is_err());
+        }
+        p.background.as_mut().unwrap().image_url.clear();
+        p.background.as_mut().unwrap().blur = 41;
+        assert!(validate(&p).is_err());
+        p.background.as_mut().unwrap().blur = 0;
+        p.background.as_mut().unwrap().overlay = 101;
+        assert!(validate(&p).is_err());
+        p.background.as_mut().unwrap().overlay = 70;
+        p.background.as_mut().unwrap().panel_blur = 41;
+        assert!(validate(&p).is_err());
+        assert!(
+            serde_json::from_value::<ThemePackage>(
+                serde_json::to_value(ThemePackage::default()).unwrap()
+            )
+            .unwrap()
+            .background
+            .is_none()
+        );
     }
     #[test]
     fn home_rows_require_one_post_list_and_bounded_passive_widgets() {

@@ -1,0 +1,18 @@
+---
+import Icon from '../ui/Icon.astro';
+interface Props { headings: { depth: number; slug: string; text: string }[] }
+const { headings } = Astro.props;
+const base = Math.min(...headings.map(heading => heading.depth));
+// Astro 自定义元素把 false 序列化为 hidden="false"；有标题时须省略属性。
+const hidden = headings.length === 0 ? true : undefined;
+---
+<reading-toc class="reading-toc" hidden={hidden}>
+  <details open>
+    <summary><Icon name="menu" /><span>正文目录</span><span class="toc-current" data-toc-current></span><Icon name="expand" /></summary>
+    <nav aria-label="正文目录">
+      <p class="toc-caption">正文目录</p>
+      <ol data-toc-list>{headings.map(heading => <li style={`--toc-depth:${heading.depth - base}`}><a href={`#${encodeURIComponent(heading.slug)}`} data-heading-id={heading.slug}>{heading.text}</a></li>)}</ol>
+    </nav>
+  </details>
+</reading-toc>
+<script>import '../../lib/reading-toc';</script>

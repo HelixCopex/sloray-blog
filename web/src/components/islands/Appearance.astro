@@ -1,7 +1,7 @@
 ---
 import Icon from '../ui/Icon.astro';
 ---
-<appearance-control class="appearance"><button type="button" class="dock-tool text" aria-label="外观：跟随系统，点击切换" data-appearance-toggle><Icon name="system" /><span>外观</span></button></appearance-control>
+<appearance-control class="appearance"><button type="button" class="dock-tool text" aria-label="外观：跟随系统，点击切换" title="外观：跟随系统，点击切换" data-appearance-toggle><Icon name="system" /></button></appearance-control>
 <script>
   const choices = ['system', 'light', 'dark'] as const;
   type Appearance = typeof choices[number];
@@ -15,6 +15,7 @@ import Icon from '../ui/Icon.astro';
     else document.documentElement.dataset.appearance = value;
     document.querySelectorAll('[data-appearance-toggle]').forEach(button => {
       button.setAttribute('aria-label', `外观：${{ system: '跟随系统', light: '浅色', dark: '深色' }[value]}，点击切换`);
+      button.setAttribute('title', button.getAttribute('aria-label')!);
       button.querySelector('use')?.setAttribute('href', `#mi-${value === 'light' ? 'light' : value === 'dark' ? 'dark' : 'system'}`);
       const icon = button.querySelector<SVGElement>('.icon'); if (icon) icon.dataset.icon = value === 'light' ? 'light' : value === 'dark' ? 'dark' : 'system';
     });

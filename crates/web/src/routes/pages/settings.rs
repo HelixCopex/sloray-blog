@@ -63,9 +63,10 @@ fn render_settings(
         r#"{notice_html}
 <h1><svg class="icon" aria-hidden="true"><use href='#mi-settings'/></svg> 设置</h1>
 <p class="sub">已登录：{who}（{role}）</p>
-<details class="settings-dock" open><summary><svg class="icon" aria-hidden="true"><use href='#mi-menu'/></svg> 导航</summary><nav class="settings-nav" aria-label="后台导航">
-<a href="/admin/posts"><svg class="icon" aria-hidden="true"><use href='#mi-edit'/></svg>文章</a><a href="/admin/pages"><svg class="icon" aria-hidden="true"><use href='#mi-article'/></svg>页面</a><a href="/admin/media"><svg class="icon" aria-hidden="true"><use href='#mi-image'/></svg>媒体</a><a href="/admin/comments"><svg class="icon" aria-hidden="true"><use href='#mi-comment'/></svg>评论</a><a href="/admin/themes"><svg class="icon" aria-hidden="true"><use href='#mi-palette'/></svg>主题</a><a href="/admin/users"><svg class="icon" aria-hidden="true"><use href='#mi-person'/></svg>账号</a><a href="/admin/settings" aria-current="page"><svg class="icon" aria-hidden="true"><use href='#mi-settings'/></svg>设置</a></nav></details>
+<details class="settings-dock" open><summary aria-label="展开或收起后台导航" title="展开或收起后台导航"><svg class="icon" aria-hidden="true"><use href='#mi-menu'/></svg></summary><nav class="settings-nav" aria-label="后台导航">
+<a href="/admin/posts" aria-label="文章" title="文章"><svg class="icon" aria-hidden="true"><use href='#mi-edit'/></svg></a><a href="/admin/pages" aria-label="页面" title="页面"><svg class="icon" aria-hidden="true"><use href='#mi-article'/></svg></a><a href="/admin/media" aria-label="媒体" title="媒体"><svg class="icon" aria-hidden="true"><use href='#mi-image'/></svg></a><a href="/admin/comments" aria-label="评论" title="评论"><svg class="icon" aria-hidden="true"><use href='#mi-comment'/></svg></a><a href="/admin/themes" aria-label="主题" title="主题"><svg class="icon" aria-hidden="true"><use href='#mi-palette'/></svg></a><a href="/admin/users" aria-label="账号" title="账号"><svg class="icon" aria-hidden="true"><use href='#mi-person'/></svg></a><a href="/admin/settings" aria-current="page" aria-label="设置" title="设置"><svg class="icon" aria-hidden="true"><use href='#mi-settings'/></svg></a></nav></details>
 {identity_form}
+<p class="hint">背景图片、模糊度与页面布局在<a href="/admin/themes">主题工作台</a>设置，保存后启用生效。</p>
 
 <form method="post" action="/admin/settings">
   <fieldset>

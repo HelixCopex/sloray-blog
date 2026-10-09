@@ -1,6 +1,6 @@
 import { clientWrite } from './api';
 import type { components } from './schema';
-import { defaultTheme, previewHtml } from './theme.mjs';
+import { defaultTheme, defaultBackground, previewHtml } from './theme.mjs';
 import material from '../styles/material.css?raw';
 import global from '../styles/global.css?raw';
 import dock from '../styles/dock.css?raw';
@@ -28,6 +28,7 @@ class ThemeWorkbench extends HTMLElement {
     const notify = (message: string) => { status.textContent = message; };
     const read = (): Package => ({ schema_version: 1, name: field('name').value, description: field('description').value,
       palette: field('palette').value, font: field('font').value, css: field('css').value,
+      background: { image_url: field('background_image_url').value.trim(), blur: Number(field('background_blur').value), overlay: Number(field('background_overlay').value), panel_blur: Number(field('background_panel_blur').value) },
       layout: { width: Number(field('width').value), columns: Number(field('columns').value),
         navigation: field('navigation').value, posts: field('posts').value,
         home_blocks: field('home_blocks').value.split(',').map(v => v.trim()).filter(Boolean),
@@ -35,7 +36,7 @@ class ThemeWorkbench extends HTMLElement {
         ...(JSON.parse(field('home_rows').value || '[]').length ? { home_rows: JSON.parse(field('home_rows').value) } : {}) },
     });
     const updatePreview = () => {
-      preview.srcdoc = previewHtml(read(), `@layer material { ${material} }` + global.replace("@import './material.css' layer(material);", '') + dock + home, this.querySelector<HTMLInputElement>('[data-preview-dark]')!.checked ? 'dark' : 'light', icons);
+      preview.srcdoc = previewHtml(read(), `@layer material { ${material} }` + global.replace("@import './material.css' layer(material);", '') + dock + home, this.querySelector<HTMLInputElement>('[data-preview-dark]')!.checked ? 'dark' : 'light', icons, location.origin);
     };
     const library = () => {
       this.querySelector('[data-active]')!.textContent = `已启用：${state.package.name}。修改主题库后需要重新启用。`;
@@ -53,6 +54,7 @@ class ThemeWorkbench extends HTMLElement {
     const load = (p: Package, theme?: Theme) => {
       selected = theme; dirty = false;
       for (const name of ['name','description','palette','font','css'] as const) field(name).value = p[name] ?? '';
+      for (const [name,value] of Object.entries({ ...defaultBackground, ...p.background })) field(`background_${name}`).value = String(value);
       for (const [name,value] of Object.entries(p.layout)) { if (name !== 'home_rows') field(name).value = Array.isArray(value) ? value.join(', ') : String(value); }
       field('home_rows').value = JSON.stringify(p.layout.home_rows ?? []);
       loadComposer(); library(); updatePreview(); notify('');

@@ -7,7 +7,9 @@ export async function testExperience(page, origin, audit) {
   await page.locator('widget-card').first().getByRole('button').click();
   await page.locator('widget-card').first().getByText('已更新', {exact:true}).waitFor();
   check(await page.evaluate(() => window.__widgetProof) === 'stable', 'widget refresh reloaded document');
-  for (const width of [360, 768, 1440]) {
+  check(await page.locator('.site-dock').innerText() === '', 'Dock contains visible text');
+  check(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundImage) === 'none', 'default background gradient remains');
+  for (const width of [360, 768, 1440, 3840]) {
     await page.setViewportSize({width,height:900}); await audit();
     check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `home overflows ${width}`);
     if (width < 1000) {
@@ -17,11 +19,12 @@ export async function testExperience(page, origin, audit) {
       await toggle.press('Escape'); check(await toggle.getAttribute('aria-expanded') === 'false', 'Escape did not collapse dock');
     }
   }
+  await page.setViewportSize({width:1440,height:900});
   await page.emulateMedia({colorScheme:'dark'}); await audit();
   await page.screenshot({path:'/tmp/sloray-glass-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});
   await page.screenshot({path:'/tmp/sloray-glass-mobile.png',fullPage:false});
-  await page.getByRole('button',{name:'展开',exact:true}).click();
+  await page.getByRole('button',{name:'展开导航',exact:true}).click();
   await page.locator('[data-dock-toggle]').press('Tab');
   await page.screenshot({path:'/tmp/sloray-glass-mobile-expanded.png',fullPage:false});
   await page.emulateMedia({reducedMotion:'reduce'});
@@ -36,11 +39,57 @@ export async function testExperience(page, origin, audit) {
   await page.getByRole('button',{name:'专注阅读',exact:true}).click();
   check(await page.locator('body').getAttribute('data-reading-focus') !== null, 'focus mode missing');
   await page.getByRole('button',{name:'专注阅读',exact:true}).click();
-  await page.getByText('正文目录',{exact:true}).click();
   check(await page.getByRole('navigation',{name:'正文目录'}).getByRole('link').count() === 1, 'article headings not in TOC');
   await audit();
+  await testReadingToc(page, origin, audit);
+  await page.setViewportSize({width:1280,height:720});
   await page.goto(origin);
-  console.log('PASS Dock 展开/Escape、360/768/1440 布局/axe、减少动态效果、群岛独立刷新、字号持久化、专注阅读与目录');
+  console.log('PASS 纯图标 Dock 展开/Escape、360/768/1440/3840 布局/axe、减少动态效果、群岛独立刷新、字号持久化与专注阅读');
+}
+
+async function testReadingToc(page, origin, audit) {
+  await page.goto(origin + '/posts/toc-guide');
+  const toc = page.locator('reading-toc'), nav = page.getByRole('navigation',{name:'正文目录'});
+  check(await nav.getByRole('link').count() === 4, 'SSR headings missing');
+  check(await toc.locator('li').nth(1).evaluate(el => el.style.getPropertyValue('--toc-depth')) === '1', 'heading indentation lost');
+  const target = await page.locator('.prose h2').nth(1).getAttribute('id');
+  await page.locator('.prose h2').nth(1).evaluate(el => scrollTo(0, el.getBoundingClientRect().top + scrollY - 60));
+  await page.waitForFunction(id => document.querySelector('reading-toc [aria-current="location"]')?.getAttribute('data-heading-id') === id, target);
+  check(await toc.evaluate(el => Math.abs(el.getBoundingClientRect().top - 32) < 2), 'desktop TOC does not follow scroll');
+  await audit();
+  await page.emulateMedia({colorScheme:'dark'});
+  await page.screenshot({path:'/tmp/sloray-reading-desktop.png',fullPage:false});
+  await page.setViewportSize({width:3840,height:1080});
+  check(await page.locator('main').evaluate(el => el.getBoundingClientRect().width <= 1120), 'ultrawide article width unbounded');
+  check(await page.locator('.reading-content').evaluate(el => el.getBoundingClientRect().width <= 760), 'ultrawide prose width unbounded');
+  await audit();
+  await page.setViewportSize({width:390,height:844});
+  check(await toc.locator('details').getAttribute('open') === null, 'mobile TOC did not collapse');
+  await toc.locator('summary').click();
+  await audit();
+  await page.screenshot({path:'/tmp/sloray-reading-mobile-menu.png',fullPage:false});
+  await nav.getByRole('link',{name:'第三章',exact:true}).click();
+  check(await toc.locator('details').getAttribute('open') === null, 'TOC anchor leaves mobile menu expanded');
+  await page.waitForFunction(() => document.querySelector('reading-toc [aria-current="location"]')?.textContent === '第三章');
+  check((await page.evaluate(() => document.activeElement?.tagName)) === 'H2', 'TOC anchor did not transfer keyboard focus');
+  await toc.locator('summary').click(); await toc.locator('summary').press('Escape');
+  check(await toc.locator('details').getAttribute('open') === null, 'Escape leaves TOC expanded');
+  await page.locator('.prose').evaluate(el => { const h = document.createElement('h2'); h.textContent = '动态新增章节'; el.append(h); });
+  await toc.locator('summary').click();
+  await nav.getByRole('link',{name:'动态新增章节',exact:true}).waitFor();
+  await page.goto(origin + '/toc-page');
+  await page.locator('reading-toc[data-ready="true"]').waitFor();
+  check(await page.getByRole('navigation',{name:'正文目录'}).locator('a').count() === 0, 'closed mobile TOC unexpectedly visible');
+  await page.locator('reading-toc summary').click();
+  check(await page.getByRole('navigation',{name:'正文目录'}).getByRole('link').count() === 4, 'page TOC missing');
+  await audit();
+  const context = await page.context().browser().newContext({javaScriptEnabled:false,viewport:{width:1280,height:900}});
+  try {
+    const fallback = await context.newPage(); await fallback.goto(origin + '/toc-page');
+    check(await fallback.getByRole('navigation',{name:'正文目录'}).getByRole('link').count() === 4, 'no-JavaScript SSR TOC lost');
+  } finally { await context.close(); }
+  await page.emulateMedia({colorScheme:'light'});
+  console.log('PASS 文章/页面 SSR 目录、桌面随动/章节高亮、手机展开/锚点焦点/Escape、动态标题重载、3840px 宽度与无 JS 目录');
 }
 
 export async function testIdentity(page, context, origin, audit) {

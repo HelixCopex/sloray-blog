@@ -11,9 +11,14 @@ export async function testThemes(page, context, origin, audit) {
   await page.locator('#theme-columns').selectOption('3');
   await page.locator('#theme-blocks').fill('posts, hero, pages');
   await page.locator('#theme-hero-title').fill('主题自定义首页');
+  await page.locator('#background-image-url').fill('/favicon.svg');
+  await page.locator('#background-blur').fill('12');
+  await page.locator('#background-overlay').fill('60');
+  await page.locator('#background-panel-blur').fill('20');
   await page.locator('#theme-css').fill('.hero { border: 3px solid rgb(1, 100, 80); } /* </style><script>parent.hacked=true</script> */');
   await page.locator('[data-theme-preview]').contentFrame().getByRole('heading',{name:'主题自定义首页'}).waitFor();
   check(await page.locator('[data-theme-preview]').getAttribute('sandbox') === '', 'preview sandbox privileges expanded');
+  check(await page.locator('[data-theme-preview]').contentFrame().locator('.site-background').evaluate(el => getComputedStyle(el,'::before').filter) === 'blur(12px)', 'background blur missing from preview');
   check(await page.evaluate(() => window.hacked) === undefined, 'theme escaped preview');
   page.once('dialog', dialog => dialog.dismiss());
   await page.getByRole('navigation',{name:'后台导航'}).getByRole('link',{name:'文章',exact:true}).click();
@@ -28,6 +33,7 @@ export async function testThemes(page, context, origin, audit) {
   const download = await downloadEvent;
   const exported = JSON.parse(await fs.readFile(await download.path(), 'utf8'));
   check(exported.schema_version === 1 && exported.name === '浏览器主题' && exported.layout.width === 1440, 'theme export lost settings');
+  check(exported.background.image_url === '/favicon.svg' && exported.background.blur === 12 && exported.background.overlay === 60 && exported.background.panel_blur === 20, 'background export lost settings');
   await page.locator('[data-preview-dark]').check();
   await page.emulateMedia({colorScheme:'dark'}); await audit();
   await page.emulateMedia({colorScheme:'light'});
@@ -49,6 +55,9 @@ export async function testThemes(page, context, origin, audit) {
   await page.getByRole('region',{name:'独立页面'}).waitFor();
   check(await page.locator('body').getAttribute('data-navigation') === 'side', 'public theme layout not applied');
   check(await page.locator('.hero').evaluate(el => getComputedStyle(el).borderTopWidth) === '3px', 'custom CSS did not apply');
+  check(await page.locator('body').getAttribute('data-background') === 'image', 'saved background not activated');
+  check(await page.locator('.site-background').evaluate(el => getComputedStyle(el,'::before').backgroundImage.includes('/favicon.svg') && getComputedStyle(el,'::before').filter === 'blur(12px)'), 'public wallpaper or blur missing');
+  check(await page.locator('.dock-panel').evaluate(el => getComputedStyle(el).backdropFilter.includes('blur(20px)')), 'panel blur setting missing');
   check(await page.locator('header.site').evaluate(el => getComputedStyle(el).position) !== 'fixed', 'side nav did not adapt on mobile');
   await audit(); await page.screenshot({path:'/tmp/sloray-public-mobile.png',fullPage:true});
   check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'public site overflows mobile');
@@ -59,12 +68,18 @@ export async function testThemes(page, context, origin, audit) {
   await audit();
   await page.emulateMedia({colorScheme:'dark'}); await audit(); await page.emulateMedia({colorScheme:'light'});
   await page.screenshot({path:'/tmp/sloray-public-desktop.png',fullPage:true});
+  await page.setViewportSize({width:3840,height:1080});
+  check(await page.evaluate(() => document.querySelector('header.site').getBoundingClientRect().right < document.querySelector('main').getBoundingClientRect().left), 'ultrawide Dock overlaps wide theme content');
+  check(await page.locator('main').evaluate(el => el.getBoundingClientRect().width <= 1440), 'theme content width unbounded');
+  await page.setViewportSize({width:1440,height:900});
   await page.goto(origin + '/admin/themes'); await page.locator('theme-workbench[data-bound="true"]').waitFor();
+  check(await page.locator('body').getAttribute('data-background') === null, 'public wallpaper leaked into admin');
   check(await page.locator('body').getAttribute('data-navigation') === 'side', 'admin navigation missing');
   await page.locator('#theme-hero-title').fill('主题快照修改');
   await page.getByRole('button',{name:'保存主题',exact:true}).click(); await page.getByText('主题已保存。点击启用可发布到全站。',{exact:true}).waitFor();
   check((await (await context.request.get(origin)).text()).includes('主题自定义首页'), 'active snapshot changed on save');
   await page.getByRole('button',{name:'恢复默认',exact:true}).click(); await page.getByText('已恢复默认主题，主题库仍保留。',{exact:true}).waitFor();
+  check(!(await (await context.request.get(origin)).text()).includes('data-background="image"'), 'reset leaves wallpaper enabled');
   await page.locator('[data-import-file]').setInputFiles({name:'theme.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(exported))});
   await page.getByText('主题包已导入，预览满意后点击启用。',{exact:true}).waitFor();
   page.once('dialog', dialog => dialog.accept()); await page.getByRole('button',{name:'删除主题',exact:true}).click(); await page.getByText('主题已删除。',{exact:true}).waitFor();
@@ -103,4 +118,5 @@ export async function testThemes(page, context, origin, audit) {
   await page.getByText('主题已删除。',{exact:true}).waitFor();
   console.log('PASS 首页编排添加组件域、便笺/页面组件、保存启用、SSR 群岛加载及独立刷新');
   console.log('PASS 主题群岛加载、CSS/布局预览、导入导出、启用快照、恢复删除、外观持久化及 360/768/1440px axe/布局审计');
+  console.log('PASS 背景/遮罩/背景模糊/面板模糊预览与保存启用、导出导入、后台隔离及恢复纯色');
 }

@@ -23,8 +23,12 @@ with App() as app:
     invalids = [package | {'schema_version': 2}, package | {'javascript': 'evil()'}, package | {'css': 'x' * 65537}, package | {'palette': 'evil'}]
     for layout in [{'width': 1601}, {'columns': 0}, {'home_blocks': ['hero']}, {'home_blocks': ['posts', 'posts']}, {'navigation': 'script'}]:
         invalids.append(package | {'layout': package['layout'] | layout})
+    background = {'image_url': '/favicon.svg', 'blur': 12, 'overlay': 65, 'panel_blur': 20}
+    for settings in [{'blur': 41}, {'panel_blur': 41}, {'overlay': 101}, {'image_url': 'javascript:evil()'}, {'image_url': '//evil.test/a'}, {'script': 'evil()'}]:
+        invalids.append(package | {'background': background | settings})
     for invalid in invalids:
         assert app.json('/api/v1/admin/themes', 'POST', {'package': invalid})[0] in [400, 422]
+    package['background'] = background
     status, _, theme = app.json('/api/v1/admin/themes', 'POST', payload)
     assert status == 201 and theme['version'] == 1
     identifier = theme['id']
@@ -44,6 +48,7 @@ with App() as app:
     assert app.request('/posts/theme-etag', web=True, headers={'If-None-Match': old_headers['etag']})[0] == 200
     html = app.request('/', web=True)[2].decode()
     assert '自定义首页' in html and 'data-navigation="side"' in html and '--content-width:1440px' in html
+    assert 'data-background="image"' in html and '--background-blur:12px' in html and '--panel-blur:20px' in html
     assert '</style><script>alert(1)</script>' not in html and '\\3c /style>' in html
     assert html.index('aria-label="文章列表"') < html.index('class="hero"')
     assert '/_server-islands/PageDirectory' in html

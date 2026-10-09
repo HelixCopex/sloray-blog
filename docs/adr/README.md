@@ -27,6 +27,7 @@
 
 | [0020](0020-data-themes-and-astro-islands.md) | JSON＋CSS 数据主题、Material 3 与 Astro 原生群岛 | 已接受 |
 | [0021](0021-responsive-dock-and-home-composition.md) | 响应式 Dock、可编排首页群岛与数据库站点标识 | 已接受 |
+| [0022](0022-icon-dock-following-toc-and-background.md) | 纯图标 Dock、响应式随动目录与可配置背景 | 已接受 |
 
 配套文档：[deployment.md](../deployment.md)（部署手册）、
 [search.md](../search.md)（检索设计）、[media.md](../media.md)（媒体设计）。

@@ -31,6 +31,10 @@ with objects_module.Objects() as objects, App() as app:
     (app.root/'config.json').write_text(json.dumps(config))
     time.sleep(2.2)
     assert app.json('/api/v1/admin/posts','POST',{'slug':'browser-seed','title':'浏览器测试文章','body_md':'# 中文浏览器导航测试\n\n文字留在这里。\n\n```js\nconst reading = true;\n```','status':'published'})[0]==201
+    paragraphs = ('在阅读中留出呼吸的空间，让文字沿着清晰的路径展开。' * 8 + '\n\n') * 12
+    guide = '# 第一章\n\n' + paragraphs + '## 细节与注释\n\n' + paragraphs + '# 第二章\n\n' + paragraphs + '# 第三章\n\n' + paragraphs
+    assert app.json('/api/v1/admin/posts','POST',{'slug':'toc-guide','title':'阅读随动指南','body_md':guide,'status':'published'})[0]==201
+    assert app.json('/api/v1/admin/pages','POST',{'slug':'toc-page','title':'页面阅读指南','body_md':guide,'status':'published','show_in_nav':False,'nav_order':0})[0]==201
     app.start_web()
     class Proxy(http.server.BaseHTTPRequestHandler):
         def log_message(self, *_args): pass

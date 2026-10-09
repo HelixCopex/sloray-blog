@@ -7026,6 +7026,38 @@
           }
         }
       },
+      "ThemeBackground": {
+        "type": "object",
+        "required": [
+          "image_url",
+          "blur",
+          "overlay",
+          "panel_blur"
+        ],
+        "properties": {
+          "blur": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "image_url": {
+            "type": "string",
+            "description": "空字符串使用纯色；其他值仅允许同源绝对路径或 HTTPS 图片。"
+          },
+          "overlay": {
+            "type": "integer",
+            "format": "int32",
+            "description": "主题表面颜色遮罩的百分比，0–100。",
+            "minimum": 0
+          },
+          "panel_blur": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
       "ThemeLayout": {
         "type": "object",
         "required": [
@@ -7090,6 +7122,16 @@
           "layout"
         ],
         "properties": {
+          "background": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ThemeBackground"
+              }
+            ]
+          },
           "css": {
             "type": "string"
           },

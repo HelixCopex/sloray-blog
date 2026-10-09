@@ -4,16 +4,44 @@
   .reader-bar label { display: flex; align-items: center; gap: .5rem; margin: 0; }
   .reader-bar select { width: auto; }
   .reader-bar .meta { margin-right: auto; }
-  .reading-toc { margin-top: .75rem; padding: .75rem 1rem; border: 1px solid var(--border); border-radius: 16px; }
-  .reading-toc summary { cursor: pointer; min-height: 48px; display: flex; align-items: center; }
-  .reading-toc nav a { display: inline-block; padding-block: .35rem; }
+  main:has(.reading-page) { max-width: 1120px; }
+  .reading-page { width: 100%; }
+  .reading-header,.reading-content { min-width: 0; max-width: min(100%, var(--reading-width), 760px); }
+  .reading-layout { display: flex; flex-direction: column; gap: 1rem; }
+  .reading-toc { display: block; width: 100%; position: sticky; top: .75rem; align-self: start; order: -1; z-index: 15; }
+  .reading-toc details { border: 1px solid var(--outline); border-radius: 20px; background: var(--surface-container); }
+  .reading-toc summary { cursor: pointer; min-height: 56px; display: flex; align-items: center; gap: .6rem; padding: .75rem 1rem; color: var(--fg); }
+  .reading-toc summary::-webkit-details-marker { display: none; }
+  .reading-toc summary>.icon:last-child { margin-left: auto; flex-shrink: 0; }
+  .reading-toc details[open] summary>.icon:last-child { rotate: 180deg; }
+  .toc-current { font-size: .8rem; color: var(--fg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .reading-toc nav { position: relative; max-height: 50dvh; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: .25rem .5rem .75rem; }
+  .toc-caption { display: none; }
+  .reading-toc ol { list-style: none; padding: 0; margin: 0; }
+  .reading-toc li { padding-left: calc(min(var(--toc-depth), 3) * .75rem); }
+  .reading-toc nav a { display: block; padding: .65rem .75rem; min-height: 44px; border-left: 3px solid transparent; border-radius: 4px 12px 12px 4px; text-decoration: none; color: var(--fg-muted); overflow-wrap: anywhere; font-size: .875rem; }
+  .reading-toc a[aria-current="location"] { border-left-color: var(--primary); background: var(--primary-container); color: var(--on-primary-container); font-weight: 600; }
+  @supports (backdrop-filter: blur(20px)) { .reading-toc details { background: color-mix(in srgb, var(--surface-container) 96%, transparent); backdrop-filter: blur(var(--panel-blur, 24px)); } }
+  @media (min-width: 1000px) {
+    .reading-header { width: calc(100% - 248px); }
+    .reading-layout { display: grid; grid-template-columns: minmax(0, 1fr) 216px; gap: 2rem; }
+    .reading-layout:has(.reading-toc[hidden]) { grid-template-columns: minmax(0, 760px); }
+    .reading-page:has(.reading-toc[hidden]) .reading-header { width: 100%; }
+    .reading-toc { top: 2rem; order: 0; }
+    .reading-toc details { border: 0; border-left: 1px solid var(--border); border-radius: 0; background: transparent; backdrop-filter: none; }
+    .reading-toc summary { display: none; }
+    .reading-toc nav { max-height: calc(100dvh - 4rem); padding-top: 0; }
+    .toc-caption { display: block; margin: 0; padding: .5rem .75rem; color: var(--fg); font-weight: 600; }
+  }
+  @media (max-width: 999px) { .reading-toc:not(:has(details[open])) .toc-current { flex: 1; } .reading-toc:has(details[open]) .toc-current { display: none; } }
   [data-reading-progress] { position: fixed; inset: 0 0 auto; width: 100%; height: 3px; border: none; z-index: 60; appearance: none; }
   [data-reading-progress]::-webkit-progress-bar { background: transparent; }
   [data-reading-progress]::-webkit-progress-value { background: var(--primary); }
   [data-reading-progress]::-moz-progress-bar { background: var(--primary); }
-  .prose :is(h2,h3,h4,h5,h6) { scroll-margin-top: 2rem; }
+  .prose :is(h2,h3,h4,h5,h6) { scroll-margin-top: 7rem; }
+  @media (min-width: 1000px) { .prose :is(h2,h3,h4,h5,h6) { scroll-margin-top: 3rem; } }
   .copy-code { float: right; margin: .3rem .5rem; min-height: 40px; }
-  body[data-reading-focus] { background-image: none; }
+  body[data-reading-focus] .site-background { display: none; }
   body[data-reading-focus] .dock-panel { box-shadow: none; background: var(--surface); }
   body[data-reading-focus] .prose { line-height: 2; }
   .composer-row { background: var(--surface-container); }
