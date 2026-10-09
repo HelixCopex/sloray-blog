@@ -19,7 +19,6 @@ try {
 <AdminLayout title="评论审核">
   <PageHeader title="评论审核" />
   <nav aria-label="评论状态"><a href="?status=pending">待审核</a> · <a href="?status=approved">已通过</a> · <a href="?status=spam">垃圾评论</a></nav>
-  <p role="status" data-moderation-notice></p>
   {comments ? <ul data-moderation>{comments.items.map(comment => <li data-id={comment.id}>
     <p><strong>{comment.author_name}</strong> · {comment.status}</p><p class="comment-body">{comment.body_md}</p>
     <button data-status="approved"><Icon name="check" />通过</button> <button data-status="spam"><Icon name="delete" />标记垃圾</button> <button data-status="pending"><Icon name="comment" />移回待审核</button>
@@ -28,6 +27,7 @@ try {
 </AdminLayout>
 <script>
   import { clientWrite } from '../../lib/api';
+  import { notify } from '../../lib/toast';
   document.addEventListener('astro:page-load', () => {
     const list = document.querySelector<HTMLElement>('[data-moderation]');
     if (!list || list.dataset.bound) return;
@@ -35,8 +35,8 @@ try {
     list.querySelectorAll<HTMLButtonElement>('button[data-status]').forEach(button => button.addEventListener('click', async () => {
       button.disabled = true;
       const item = button.closest<HTMLElement>('li')!;
-      try { await clientWrite(`/admin/comments/${item.dataset.id}`, 'PUT', { status: button.dataset.status }); item.remove(); }
-      catch (error) { document.querySelector('[data-moderation-notice]')!.textContent = String(error); button.disabled = false; }
+      try { await clientWrite(`/admin/comments/${item.dataset.id}`, 'PUT', { status: button.dataset.status }); item.remove(); notify('评论状态已更新。', 'success'); }
+      catch (error) { notify(String(error), 'error'); button.disabled = false; }
     }));
   });
 </script>

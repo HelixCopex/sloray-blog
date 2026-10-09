@@ -10,7 +10,6 @@ const content = await renderMarkdown(value);
     <button type="button" data-view="edit" aria-pressed="false"><Icon name="edit" />只编辑</button>
     <button type="button" data-view="preview" aria-pressed="false"><Icon name="preview" />只预览</button>
     <button type="button" data-view="split" aria-pressed="true"><Icon name="article" />分栏</button>
-    <span class="hint" data-preview-notice role="status" aria-live="polite"></span>
   </div>
   <div class="editor-toolbar writing-toolbar" aria-label="Markdown 格式">
     <button type="button" class="text" data-format="bold">粗体</button><button type="button" class="text" data-format="italic">斜体</button><button type="button" class="text" data-format="link">链接</button><button type="button" class="text" data-format="list">列表</button><button type="button" class="text" data-format="code">代码</button><span class="hint" data-word-count></span>
@@ -23,13 +22,13 @@ const content = await renderMarkdown(value);
 </div>
 <script>
   import { clientGet, type Session } from '../lib/api';
+  import { notify } from '../lib/toast';
   document.addEventListener('astro:page-load', () => {
     const editor = document.querySelector<HTMLElement>('[data-markdown-editor]');
     if (!editor || editor.dataset.bound) return;
     editor.dataset.bound = 'true';
     const body = editor.querySelector<HTMLTextAreaElement>('#body')!;
     const preview = editor.querySelector<HTMLElement>('[data-markdown-preview]')!;
-    const notice = editor.querySelector<HTMLElement>('[data-preview-notice]')!;
     const count = editor.querySelector<HTMLElement>('[data-word-count]')!;
     const updateCount = () => { count.textContent = `${body.value.replace(/\s/g, '').length} 字 · Ctrl / ⌘ + S 保存`; };
     updateCount(); body.addEventListener('input', updateCount);
@@ -48,7 +47,7 @@ const content = await renderMarkdown(value);
     body.addEventListener('input', () => {
       clearTimeout(timer); pending?.abort();
       const current = ++sequence;
-      notice.textContent = '预览更新中…';
+      preview.setAttribute('aria-busy', 'true');
       timer = setTimeout(async () => {
         const controller = new AbortController(); pending = controller;
         try {
@@ -58,9 +57,9 @@ const content = await renderMarkdown(value);
           if (!response.ok) throw new Error(result.error?.message ?? '预览失败');
           if (current !== sequence || !editor.isConnected) return;
           preview.innerHTML = result.html;
-          notice.textContent = '预览已更新';
+          preview.removeAttribute('aria-busy');
         } catch (error) {
-          if (!controller.signal.aborted && current === sequence) notice.textContent = error instanceof Error ? error.message : '预览失败';
+          if (!controller.signal.aborted && current === sequence) { preview.removeAttribute('aria-busy'); notify(error instanceof Error ? error.message : '预览失败', 'error', {id:'markdown-preview'}); }
         }
       }, 350);
     });

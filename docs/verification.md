@@ -852,3 +852,106 @@ URL、弹窗与输入均保留；确认放弃后可以正常前进/后退。搜�
 对新旧动画移动路径都检查同一 Dock/主页节点，并校验原动画已播放时间没有归零。
 人工查看文章、搜索与评论截图，摘要、黑色遮罩和 Dock 布局符合当前要求。
 部署已有环境须先应用第八条迁移或重新启动统一开发脚本完成自动迁移；本地通过不等于远程 CI。
+
+## MD3 切页、Dock 新动作与图像聚焦（2026-10-10）
+
+本次按 ADR-0024 移除正文缩放，采用 MD3 曲线的滑出淡出/滑入淡入；新增 Dock 操作
+仅在首次可见时缓动入场。Markdown 图片宽高作为正文属性保存，媒体库提供尺寸，
+编辑器在保存前读取外部图片缺失尺寸；文章和页面使用同一个清洗后加载控件。
+本次没有新增依赖或数据库迁移；真实数据库测试使用 UUID 临时库，不给开发库写入测试内容。
+
+实际执行并退出 0：`cargo fmt --all -- --check`、
+`cargo clippy --locked --workspace --all-targets -- -D warnings`、
+`cargo test --locked --workspace`（63 项，0 失败）、`./scripts/check-architecture.sh`、
+web 目录的 `pnpm run api:check`、`test`、`check`、`build`，以及 `git diff --check`。
+实际输出摘录：
+
+```text
+ℹ tests 13
+ℹ pass 13
+ℹ fail 0
+Result (72 files):
+- 0 errors
+- 0 warnings
+- 0 hints
+[build] Complete!
+advisories ok, bans ok, licenses ok, sources ok
+结果：全部通过
+```
+
+构建仍显示既有上游 MDX/HAST MODULE_LEVEL_DIRECTIVE 提示。
+先构建当前 Rust 二进制和 Astro SSR，再设置 SLORAY_TEST_DATABASE_URL 实际执行：
+
+```text
+python3 scripts/smoke-pages.py
+PASS 页面管理员权限/CSRF、保留地址、版本冲突、游标、发布/改址/撤回/删除、导航和 sitemap
+PASS 页面 SSR 与 Markdown 预览一致、脚本/危险链接清洗、预览认证与长度限制、purge outbox、Dock 图标默认/持久化/白名单校验
+python3 scripts/smoke-browser.py
+PASS Favicon 主页、按页面切换操作、评论取消/放弃草稿、黑色搜索弹窗、320px Dock、AJAX 节点与动画时间线连续
+PASS 禁用 moveBefore 的旧浏览器路径保持 Dock 节点、CSS 动画时间及弹窗监听
+PASS MD3 前进/返回滑移淡入淡出、无缩放、Dock 新按钮缓动、图片原比例占位/聚焦/零漂移/失败、减少动态效果与无 JS
+PASS Markdown 实时预览/分栏/清洗、未保存离开提示、移动布局、媒体复用与 Markdown 剪贴板及拒绝权限退路
+PASS HTML 登录、后台连续保存、跨域直传与封面展示、点赞、审核、删除媒体及管理页 axe 检查
+```
+
+完整浏览器回归还通过随动目录、320/360/768/1440/3840px 布局、深浅主题、主题与背景配置、
+首页编排/群岛刷新、搜索/评论弹窗、历史导航、自定义页面图标及无 JS 阅读。
+新增断言检查真实 CSS 关键帧的退出/进入曲线与方向，原有 Dock 操作不重新入场。
+延迟图片响应时横图按 2:1 原始比例占位；加载完成前后容器高度及下方正文位置误差小于 0.1px。
+人工查看棋盘纹理的占位、聚焦中间帧和最终截图，模糊消失、色块淡出，最终透明度为 1。
+失败的竖图保留 1:2 比例，减少动态效果关闭模糊/渐变，无 JS 图片仍可见。
+媒体库复制携带 400×200 原图尺寸；手工去除属性后的外部链接在保存时恢复该派生图的
+真实解码宽高，并通过 API 验证正文和修订历史都保留属性。没有执行远程 push CI 或发布。
+
+## 后台持久 Tab、Zen 过渡与统一 Toast（2026-10-10）
+
+按 ADR-0025 将后台 Tab 放入 main 外的持久 chrome，取消 page-content 快照的默认
+尺寸插值，保持自动高度、contain 和顶部对齐。管理 Dock 使用服务器图标；独立页面
+不渲染阅读进度，文章进度轨道透明。Astro 与 Rust 登录/设置页共享彩色 Toast，弹窗
+开启时通知进入弹窗的 DOM 子树并在顶层显示，保证关闭按钮可点击且不夺取输入焦点。
+本次没有新增依赖、数据库字段或迁移。
+
+在上述 MD3 验证后追加并实际执行，命令均退出 0：
+`cargo fmt --all -- --check`、`cargo clippy --locked --workspace --all-targets -- -D warnings`、
+`cargo test --locked --workspace`（63 项，0 失败）、`./scripts/check-architecture.sh`，
+以及 web 的 `pnpm run api:check`、`test`、`check`、`build` 与 `git diff --check`。
+实际输出摘录：
+
+```text
+ℹ tests 13
+ℹ pass 13
+ℹ fail 0
+Result (76 files):
+- 0 errors
+- 0 warnings
+- 0 hints
+[build] Complete!
+advisories ok, bans ok, licenses ok, sources ok
+结果：全部通过
+```
+
+重新构建 Rust 二进制和 Astro SSR 后，使用 UUID 隔离数据库执行
+`python3 scripts/smoke-pages.py` 与 `SLORAY_TEST_ZEN=1 python3 scripts/smoke-browser.py`，
+每次只向临时库写入测试内容并自动清理。数据库连接通过 SLORAY_TEST_DATABASE_URL 提供。
+完整 Chromium/axe、内容/API 与原生 Zen 输出包括：
+
+```text
+PASS 页面 SSR 与 Markdown 预览一致、脚本/危险链接清洗、预览认证与长度限制、purge outbox、Dock 图标默认/持久化/白名单校验
+PASS 后台 Tab 持久且位于动效外、快照无尺寸插值、服务器图标、页面无进度/文章透明轨道、Toast 颜色/顶层、不可达图片不阻断保存
+PASS 设置页站点名称/Favicon 保存、页面标题/导航/RSS 同步与恢复默认
+PASS 主题群岛加载、CSS/布局预览、导入导出、启用快照、恢复删除、外观持久化及 360/768/1440px axe/布局审计
+PASS HTML 登录、后台连续保存、跨域直传与封面展示、点赞、审核、删除媒体及管理页 axe 检查
+PASS Zen 1.23.1b 媒体/主题切页快照无拉伸、后台 Tab 保持节点、Toast 顶层显示/弹窗内可点击
+```
+
+媒体保存回归主动阻断派生图片的网络请求，缺失属性仍从媒体元数据补齐为原图
+400×200，并经 API 检查正文及修订均保留尺寸；封面保存不依赖新的图片下载。
+另创建不可达的正文图片，验证保存成功、正文不丢失、完整导航后显示黄色警告 Toast。
+这取代上一节“重新测量派生图尺寸”的保存策略。文章及图片 MD3 动效、零布局漂移、
+无 JS 阅读、手机 Dock/目录、历史与评论草稿保护等回归继续通过。
+
+Zen 使用本机安装的 1.23.1b、原生 WebDriver BiDi 和独立临时 profile，截取媒体/主题
+进入动画中的帧，人工确认字体、表单和预览比例正常。截图位于
+`/tmp/sloray-zen-media-transition.png` 与 `/tmp/sloray-zen-themes-transition.png`。
+可用 `SLORAY_TEST_ZEN=only` 单独执行 Zen 回归；该脚本仅关闭自己启动的测试浏览器。
+构建仍有既有上游 MDX/HAST MODULE_LEVEL_DIRECTIVE 提示，未执行远程 push CI 或发布。

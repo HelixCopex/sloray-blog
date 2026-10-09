@@ -1,0 +1,9 @@
+---
+import type { HTMLAttributes } from 'astro/types';
+interface Props extends HTMLAttributes<'img'> { width?: number; height?: number; frameClass?: string; hidden?: boolean }
+const { width, height, frameClass, hidden, ...attributes } = Astro.props;
+const style = width && height ? `--image-aspect:${width}/${height};--image-width:${width}px` : undefined;
+---
+<focus-image class:list={['image-frame', frameClass]} style={style} hidden={hidden}>
+  <img {...attributes} width={width} height={height} decoding="async" />
+</focus-image>

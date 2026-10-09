@@ -17,8 +17,10 @@ async function compile(name, replacements = {}) {
 const apiUrl = await compile('api', {'import.meta.env.SLORAY_API_INTERNAL_URL':'undefined'});
 const api = await import(apiUrl);
 const headingsUrl = await compile('markdown');
+const imagesUrl = await compile('markdown-images');
 const markdown = await import(await compile('render-markdown', {
   "'./markdown'": JSON.stringify(headingsUrl),
+  "'./markdown-images'": JSON.stringify(imagesUrl),
   "'@astrojs/markdown-remark'": JSON.stringify(pathToFileURL(require.resolve('@astrojs/markdown-remark')).href),
   "'rehype-sanitize'": JSON.stringify(pathToFileURL(require.resolve('rehype-sanitize')).href),
 }));
@@ -45,6 +47,27 @@ test('media clipboard links escape labels, multiline text and unsafe destination
   assert.equal(link, '![图\\[片\\]\\\\ 换行](<https://example.com/a%20b(1)%3Cx%3E.webp>)');
   assert.match(await markdown.renderMarkdown(link), /alt="图\[片\]\\ 换行"/);
   assert.equal(mediaMarkdown(' ', 'https://example.com/a.webp'), '![图片](<https://example.com/a.webp>)');
+});
+test('image dimensions reserve original aspect ratios and keep per-image source offsets', async () => {
+  const source = '![横图](<https://example.com/wide.webp>){width=400 height=200}\n\n![竖图][portrait]{width=200 height=400}\n\n[portrait]: https://example.com/tall.webp\n\n```md\n![代码](fake.webp)\n```\n\n![普通](https://example.com/other.webp)';
+  const article = await markdown.renderArticle(source);
+  assert.equal(article.images.length, 3);
+  assert.match(article.code, /--image-aspect:400\/200/);
+  assert.match(article.code, /--image-aspect:200\/400/);
+  assert.match(article.code, /width="400" height="200"/);
+  assert.equal(source.slice(article.images[1].start, article.images[1].end), '![竖图][portrait]{width=200 height=400}');
+  assert.equal(article.images[2].width, undefined);
+  assert.doesNotMatch(article.code, />\{width=400 height=200\}/);
+  assert.deepEqual((await markdown.renderArticle('没有图片')).images, []);
+  assert.equal((await markdown.renderArticle('![空格](<https://example.com/a b.webp>)')).images[0].url, 'https://example.com/a%20b.webp');
+});
+test('image attributes reject invalid dimensions and executable destinations', async () => {
+  const article = await markdown.renderArticle('![坏图](javascript:evil){width=400 height=200}\n\n![图](https://example.com/a.webp){width=999999999 height=2}');
+  assert.equal(article.images.length, 1);
+  assert.equal(article.images[0].width, undefined);
+  assert.doesNotMatch(article.code, /--image-aspect:999999999|src="javascript:/);
+  assert.equal(mediaMarkdown('图', '/a.webp', {width:400,height:200}), '![图](</a.webp>){width=400 height=200}');
+  assert.equal(mediaMarkdown('图', '/a.webp', {width:Infinity,height:200}), '![图](</a.webp>)');
 });
 test('upload diagnostics omit signatures, credentials and raw unknown failures', () => {
   const result = upload.describeUploadFailure(new Error('secret-token'), {stage:'原图',origin:'https://blog.example',contentType:'image/png',sizeBytes:10,uploadUrl:'https://objects.example/key?X-Amz-Credential=SECRET&X-Amz-Signature=PRIVATE',headers:{Authorization:'PRIVATE'}});

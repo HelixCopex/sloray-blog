@@ -35,7 +35,6 @@ try {
       <button type="submit" class="editor-action-fallback"><Icon name="save" />保存</button>
       <a class="editor-action-fallback" data-public-link href={page ? `/${encodeURIComponent(page.slug)}` : '#'} hidden={page?.status !== 'published'} target="_blank" rel="noopener">查看已发布页面</a>
       {page && <button type="button" data-delete-content class="danger editor-action-fallback"><Icon name="delete" />删除页面</button>}
-      <p id="editor-notice" role="status" aria-live="polite"></p>
     </form>
     <MediaPicker />
   </>}

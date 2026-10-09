@@ -1,10 +1,11 @@
 import { clientWrite, ApiRequestError, type Post, type Page, type WritePost, type WritePage } from './api';
+import { prepareImageDimensions } from './editor-images';
+import { notify } from './toast';
 
 export function bindEditor() {
   const form = document.querySelector<HTMLFormElement>('#editor');
   if (!form || form.dataset.bound) return;
   form.dataset.bound = 'true';
-  const notice = document.querySelector<HTMLElement>('#editor-notice')!;
   const kind = form.dataset.kind === 'pages' ? 'pages' : 'posts';
   const label = kind === 'pages' ? '页面' : '文章';
   const status = form.querySelector<HTMLSelectElement>('#status')!;
@@ -57,24 +58,28 @@ export function bindEditor() {
     try {
       const date = value(data, 'published_at');
       body = kind === 'pages' ? { ...common, show_in_nav: data.get('show_in_nav') === 'on', nav_order: Number(value(data, 'nav_order')), dock_icon: value(data, 'dock_icon') || 'article' } : { ...common, published_at: date ? new Date(`${date}:00+08:00`).toISOString() : null, cover_media_id: value(data, 'cover_media_id') || null, lang: 'zh', tags: value(data, 'tags').split(/[,，]/).map(s => s.trim()).filter(Boolean) };
-    } catch { notice.textContent = '请输入有效的发布时间。'; return; }
+    } catch { notify('请输入有效的发布时间。', 'warning'); return; }
     const controls = [...form.querySelectorAll<HTMLInputElement | HTMLButtonElement | HTMLTextAreaElement | HTMLSelectElement>('input,button,textarea,select')].filter(control => !control.disabled);
     controls.forEach(control => { control.disabled = true; });
     form.dataset.busy = 'true'; syncDock();
-    notice.textContent = '正在保存…';
     try {
+      const prepared = await prepareImageDimensions(body.body_md);
+      body.body_md = prepared.markdown;
+      const textarea = form.querySelector<HTMLTextAreaElement>('[name=body_md]')!;
+      if (textarea.value !== body.body_md) { textarea.value = body.body_md; textarea.dispatchEvent(new Event('input', { bubbles: true })); }
       const result = await clientWrite<Post | Page>(id === 'new' ? `/admin/${kind}` : `/admin/${kind}/${id}`, id === 'new' ? 'POST' : 'PUT', body);
       form.dataset.id = result.id; form.dataset.version = String(result.version);
       if (published && 'published_at' in result) published.value = result.published_at ? new Date(new Date(result.published_at).getTime() + 8 * 3600 * 1000).toISOString().slice(0, 16) : '';
       controls.forEach(control => { control.disabled = false; });
       baseline = JSON.stringify([...new FormData(form)]);
-      notice.textContent = `已保存（版本 ${result.version}）。`;
+      notify(`已保存（版本 ${result.version}）。`, 'success', { persist: id === 'new' });
+      if (prepared.unresolved) notify(`已保存正文；${prepared.unresolved} 张图片暂时无法读取尺寸。恢复图片连接后重新保存即可补全，或手动填写宽高。`, 'warning', { persist: id === 'new' });
       const link = document.querySelector<HTMLAnchorElement>('[data-public-link]');
       if (link) { link.href = `${kind === 'pages' ? '/' : '/posts/'}${encodeURIComponent(result.slug)}`; link.hidden = result.status !== 'published'; }
       syncDock();
       if (id === 'new') window.location.assign(`/admin/${kind}/${result.id}`);
     } catch (error) {
-      notice.textContent = error instanceof ApiRequestError && error.status === 409 ? `${label}版本已变化或地址已被占用。当前内容已保留，请更换地址或复制内容后重新加载。` : error instanceof Error ? error.message : '保存失败，请重试。';
+      notify(error instanceof ApiRequestError && error.status === 409 ? `${label}版本已变化或地址已被占用。当前内容已保留，请更换地址或复制内容后重新加载。` : error instanceof Error ? error.message : '保存失败，请重试。', 'error');
     } finally { controls.forEach(control => { control.disabled = false; }); delete form.dataset.busy; syncDock(); }
   });
   document.querySelector<HTMLButtonElement>('[data-delete-content]')?.addEventListener('click', async event => {
@@ -85,6 +90,6 @@ export function bindEditor() {
       await clientWrite<void>(`/admin/${kind}/${form.dataset.id}`, 'DELETE', { version: Number(form.dataset.version) });
       baseline = JSON.stringify([...new FormData(form)]);
       window.location.assign(`/admin/${kind}`);
-    } catch (error) { notice.textContent = error instanceof Error ? error.message : '删除失败'; button.disabled = false; delete form.dataset.busy; syncDock(); }
+    } catch (error) { notify(error instanceof Error ? error.message : '删除失败', 'error'); button.disabled = false; delete form.dataset.busy; syncDock(); }
   });
 }

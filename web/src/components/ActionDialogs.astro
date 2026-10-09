@@ -14,7 +14,7 @@ import Icon from './ui/Icon.astro';
       <label for="comment-body">评论（提交后由作者审核）</label><textarea id="comment-body" name="body_md" required maxlength="4000" rows="6" />
       <div class="honeypot" aria-hidden="true"><label for="comment-website">Website</label><input id="comment-website" name="website" tabindex="-1" autocomplete="off" /></div>
       <button type="submit"><Icon name="comment" />提交评论</button>
-    </form><p data-comment-notice role="status" aria-live="polite"></p>
+    </form>
   </dialog>
 </action-dialogs>
 <script>import '../lib/action-dialogs';</script>

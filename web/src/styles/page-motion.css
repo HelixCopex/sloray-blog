@@ -1,13 +1,22 @@
-@keyframes page-away { to { transform: translateX(-3rem) scale(.985); } }
-@keyframes page-arrive { from { transform: translateX(3rem) scale(.985); } to { transform: none; } }
-@keyframes page-back-away { to { transform: translateX(3rem) scale(.985); } }
-@keyframes page-back-arrive { from { transform: translateX(-3rem) scale(.985); } to { transform: none; } }
-::view-transition-old(page-content),::view-transition-new(page-content) { mix-blend-mode: normal; }
-::view-transition-old(page-content) { visibility: hidden; }
+:root {
+  /* Material 3 motion tokens: departing content accelerates; arriving content settles. */
+  --md-easing-emphasized-accelerate: cubic-bezier(.3, 0, .8, .15);
+  --md-easing-emphasized-decelerate: cubic-bezier(.05, .7, .1, 1);
+  --md-easing-standard: cubic-bezier(.2, 0, 0, 1);
+  --md-duration-medium-1: 250ms;
+  --md-duration-long-2: 500ms;
+}
+@keyframes page-away { from { transform: none; opacity: 1; } to { transform: translateX(-3rem); opacity: 0; } }
+@keyframes page-arrive { from { transform: translateX(3rem); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes page-back-away { from { transform: none; opacity: 1; } to { transform: translateX(3rem); opacity: 0; } }
+@keyframes page-back-arrive { from { transform: translateX(-3rem); opacity: 0; } to { transform: none; opacity: 1; } }
+/* Snapshot dimensions must not interpolate between short lists and tall, deferred islands. */
+::view-transition-group(page-content) { animation: none; }
+::view-transition-old(page-content),::view-transition-new(page-content) { mix-blend-mode: normal; height: auto; width: 100%; object-fit: contain; object-position: top left; transform-origin: top left; }
 @media (prefers-reduced-motion: reduce) { ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*) { animation: none !important; } }
 @layer layout {
   .action-dialog { width: min(36rem, calc(100% - 2rem)); box-shadow: 0 16px 80px rgb(0 0 0 / .5); }
   .action-dialog::backdrop { background: rgb(0 0 0 / .85); }
-  @media (prefers-reduced-motion: no-preference) { .action-dialog[open] { animation: dialog-open .25s cubic-bezier(.2,.8,.2,1); } }
+  @media (prefers-reduced-motion: no-preference) { .action-dialog[open] { animation: dialog-open var(--md-duration-medium-1) var(--md-easing-emphasized-decelerate); } }
   @keyframes dialog-open { from { transform: translateY(1rem) scale(.96); } to { transform: none; } }
 }

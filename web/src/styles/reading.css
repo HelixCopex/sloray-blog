@@ -31,7 +31,7 @@
     .toc-caption { display: block; margin: 0; padding: .5rem .75rem; color: var(--fg); font-weight: 600; }
   }
   @media (max-width: 999px) { .reading-toc:not(:has(details[open])) .toc-current { flex: 1; } .reading-toc:has(details[open]) .toc-current { display: none; } }
-  [data-reading-progress] { position: fixed; inset: 0 0 auto; width: 100%; height: 3px; border: none; z-index: 60; appearance: none; }
+  [data-reading-progress] { position: fixed; inset: 0 0 auto; width: 100%; height: 3px; border: none; z-index: 60; appearance: none; background: transparent; color: var(--primary); }
   [data-reading-progress]::-webkit-progress-bar { background: transparent; }
   [data-reading-progress]::-webkit-progress-value { background: var(--primary); }
   [data-reading-progress]::-moz-progress-bar { background: var(--primary); }

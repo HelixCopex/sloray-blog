@@ -1,6 +1,7 @@
 import { clientGet, clientWrite, ApiRequestError } from './api';
 import type { components } from './schema';
 import type { DockContext } from './dock-context';
+import { notify } from './toast';
 
 // Reconcile by action identity: hovering buttons and their ripples retain the same DOM nodes.
 function reconcile(current: Element, incoming: Element) {
@@ -8,13 +9,13 @@ function reconcile(current: Element, incoming: Element) {
   const wanted: Element[] = [];
   for (const next of incoming.children) {
     const previous = retained.get(next.getAttribute('data-dock-key'));
-    if (!previous || previous.tagName !== next.tagName) { wanted.push(next.cloneNode(true) as Element); continue; }
-    for (const attr of [...previous.attributes]) if (!next.hasAttribute(attr.name) && attr.name !== 'hidden') previous.removeAttribute(attr.name);
+    if (!previous || previous.tagName !== next.tagName) { const added = next.cloneNode(true) as HTMLElement; added.dataset.dockEnter = 'pending'; wanted.push(added); continue; }
+    for (const attr of [...previous.attributes]) if (!next.hasAttribute(attr.name) && !['hidden', 'data-dock-enter'].includes(attr.name)) previous.removeAttribute(attr.name);
     for (const attr of [...next.attributes]) previous.setAttribute(attr.name, attr.value);
     const oldIcon = previous.querySelector('use'), newIcon = next.querySelector('use');
     if (oldIcon && newIcon) { oldIcon.setAttribute('href', newIcon.getAttribute('href')!); oldIcon.closest('svg')?.setAttribute('data-icon', newIcon.closest('svg')?.getAttribute('data-icon') ?? ''); }
     const oldImage = previous.querySelector('img'), newImage = next.querySelector('img');
-    if (oldImage && newImage && oldImage.src !== newImage.src) { oldImage.src = newImage.src; oldImage.hidden = false; }
+    if (oldImage && newImage && oldImage.src !== newImage.src) { oldImage.src = newImage.src; oldImage.closest<HTMLElement>('focus-image')!.hidden = false; }
     wanted.push(previous);
   }
   for (const child of [...current.children]) if (!wanted.includes(child)) child.remove();
@@ -32,7 +33,8 @@ class SiteDock extends HTMLElement {
     const { signal } = this.controller;
     const mobile = matchMedia('(max-width: 999px)');
     this.dataset.ready = 'true'; this.sync();
-    this.addEventListener('error', event => { if ((event.target as HTMLElement)?.matches('.dock-favicon')) (event.target as HTMLElement).hidden = true; }, { capture: true, signal });
+    this.addEventListener('animationend', event => { if (event.animationName === 'dock-action-enter') delete (event.target as HTMLElement).dataset.dockEnter; }, { signal });
+    this.addEventListener('error', event => { if ((event.target as HTMLElement)?.matches('.dock-favicon')) (event.target as HTMLElement).closest<HTMLElement>('focus-image')!.hidden = true; }, { capture: true, signal });
     this.addEventListener('click', event => {
       const button = (event.target as Element).closest<HTMLElement>('[data-dock-toggle],[data-back-top],[data-like],[data-editor-action]');
       if (button?.hasAttribute('data-dock-toggle')) { this.dataset.expanded = String(this.dataset.expanded !== 'true'); this.sync(); this.syncEditor(); }
@@ -50,7 +52,6 @@ class SiteDock extends HTMLElement {
       reconcile(this.querySelector('.dock-context')!, incoming.querySelector('.dock-context')!);
       this.dataset.context = (incoming as HTMLElement).dataset.context;
       this.epoch++; this.liked = false; this.dataset.expanded = 'false'; this.sync();
-      this.querySelector('[data-dock-notice]')!.textContent = '';
       // Fallback browsers relocate persisted elements using remove/append. Restore timelines after the swap.
       const timelines = this.getAnimations({ subtree: true }).map(animation => ({ animation, time: animation.currentTime, state: animation.playState, target: (animation.effect as KeyframeEffect | null)?.target, name: animation instanceof CSSAnimation ? animation.animationName : animation instanceof CSSTransition ? animation.transitionProperty : undefined }));
       const swap = event.swap;
@@ -62,6 +63,7 @@ class SiteDock extends HTMLElement {
           animation.currentTime = snapshot.time;
           if (snapshot.state === 'running') animation.play(); else if (snapshot.state === 'paused') animation.pause();
         }
+        this.revealActions();
       };
     }, { signal });
     document.addEventListener('astro:page-load', () => { this.syncEditor(); void this.stats(true); }, { signal });
@@ -73,6 +75,15 @@ class SiteDock extends HTMLElement {
     toggle.setAttribute('aria-expanded', String(open)); toggle.setAttribute('aria-label', open ? '收起导航' : '展开导航'); toggle.title = open ? '收起导航' : '展开导航';
     this.querySelectorAll<HTMLElement>('nav a').forEach(link => { link.hidden = mobile && !open && !['home','search'].includes(link.dataset.dockKey ?? ''); });
     this.querySelectorAll<HTMLElement>('.dock-context > *').forEach(button => { if (!button.hasAttribute('data-editor-preview')) button.hidden = mobile && !open && !button.matches('[data-like],[data-comment-open]'); });
+    this.revealActions();
+  }
+  private revealActions() {
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.querySelectorAll<HTMLElement>('[data-dock-enter=pending]').forEach(button => {
+      if (button.hidden) return;
+      if (reduced) { delete button.dataset.dockEnter; return; }
+      requestAnimationFrame(() => { if (button.isConnected && !button.hidden && button.dataset.dockEnter === 'pending') button.dataset.dockEnter = 'active'; });
+    });
   }
   private async stats(view = false) {
     const context = this.context(), epoch = this.epoch;
@@ -86,13 +97,13 @@ class SiteDock extends HTMLElement {
       const button = this.querySelector<HTMLButtonElement>('[data-like]'); if (button) button.disabled = false;
       button?.setAttribute('aria-pressed', String(stats.liked)); button?.setAttribute('aria-label', stats.liked ? '取消点赞' : '点赞'); if (button) button.title = `${stats.liked ? '取消点赞' : '点赞'} · ${stats.like_count}`;
       const counts = document.querySelector('[data-stats]'); if (counts) counts.textContent = `${stats.view_count} 次浏览 · ${stats.like_count} 人点赞`;
-    } catch { if (epoch === this.epoch) { const counts = document.querySelector('[data-stats]'); if (counts) counts.textContent = '统计暂时不可用'; } }
+    } catch { if (epoch === this.epoch) { const counts = document.querySelector('[data-stats]'); if (counts) counts.textContent = ''; notify('文章统计暂时不可用。', 'warning', {id:'post-stats'}); } }
   }
   private async like(button: HTMLButtonElement) {
     const context = this.context(), epoch = this.epoch; if (!context.id || button.disabled) return;
     button.disabled = true;
     try { await clientWrite(`/posts/${context.id}/like`, this.liked ? 'DELETE' : 'PUT', {}); if (epoch === this.epoch) await this.stats(); }
-    catch (error) { if (epoch === this.epoch) this.querySelector('[data-dock-notice]')!.textContent = error instanceof ApiRequestError && error.status === 401 ? '请登录后点赞。' : String(error); }
+    catch (error) { if (epoch === this.epoch) notify(error instanceof ApiRequestError && error.status === 401 ? '请登录后点赞。' : String(error), error instanceof ApiRequestError && error.status === 401 ? 'warning' : 'error'); }
     finally { if (epoch === this.epoch) button.disabled = false; }
   }
   private editorAction(action: string) {
@@ -111,6 +122,7 @@ class SiteDock extends HTMLElement {
     const save = this.querySelector<HTMLElement>('[data-editor-action=save]'); save?.setAttribute('aria-label', label); if (save) save.title = label;
     const original = form.querySelector<HTMLAnchorElement>('[data-public-link]'), preview = this.querySelector<HTMLAnchorElement>('[data-editor-preview]');
     if (preview && original) { preview.href = original.href; preview.hidden = original.hidden || matchMedia('(max-width: 999px)').matches && this.dataset.expanded !== 'true'; }
+    this.revealActions();
   }
   disconnectedCallback() { this.controller?.abort(); }
 }

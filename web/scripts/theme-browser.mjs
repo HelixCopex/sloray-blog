@@ -85,9 +85,10 @@ export async function testThemes(page, context, origin, audit) {
   page.once('dialog', dialog => dialog.accept()); await page.getByRole('button',{name:'删除主题',exact:true}).click(); await page.getByText('主题已删除。',{exact:true}).waitFor();
   await page.locator('[data-library]').getByRole('button',{name:'浏览器主题',exact:true}).click();
   page.once('dialog', dialog => dialog.accept()); await page.getByRole('button',{name:'删除主题',exact:true}).click(); await page.getByText('主题已删除。',{exact:true}).waitFor();
+  await page.waitForFunction(() => document.querySelectorAll('[data-library] button').length === 0);
   check(await page.locator('[data-library] button').count() === 0, 'theme deletion left stale library');
   await page.locator('[data-import-file]').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from('{"schema_version":999}')});
-  await page.locator('[data-theme-status]').filter({hasText:'操作失败'}).waitFor();
+  await page.locator('.toast[data-kind=error]').filter({hasText:'操作失败'}).waitFor();
   await page.getByRole('button',{name:'外观：跟随系统，点击切换',exact:true}).click();
   await page.getByRole('button',{name:'外观：浅色，点击切换',exact:true}).click();
   await page.reload(); await page.locator('theme-workbench[data-bound="true"]').waitFor();
@@ -110,7 +111,7 @@ export async function testThemes(page, context, origin, audit) {
   await page.getByRole('region',{name:'我的组件域'}).getByText('静静阅读，慢慢书写。',{exact:true}).waitFor();
   await audit();
   const widget = page.getByRole('region',{name:'我的组件域'}).locator('widget-card').first();
-  await widget.getByRole('button').click(); await widget.getByText('已更新',{exact:true}).waitFor();
+  await widget.getByRole('button').click(); await page.locator('.toast[data-kind=success]').getByText('已更新',{exact:true}).waitFor();
   await page.goto(origin + '/admin/themes'); await page.locator('theme-workbench[data-bound="true"]').waitFor();
   await page.getByRole('button',{name:'恢复默认',exact:true}).click();
   await page.getByText('已恢复默认主题，主题库仍保留。',{exact:true}).waitFor();

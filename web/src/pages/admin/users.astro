@@ -24,19 +24,20 @@ try {
     <label for="user-email">邮箱</label><input id="user-email" name="email" type="email" required maxlength="254" />
     <label for="user-password">初始密码</label><input id="user-password" name="password" type="password" required minlength="8" maxlength="1024" autocomplete="new-password" />
     <label for="user-role">角色</label><select id="user-role" name="role"><option value="author">作者</option><option value="admin">管理员</option></select>
-    <button><Icon name="person" />创建账号</button><p id="user-notice" role="status"></p>
+    <button><Icon name="person" />创建账号</button>
   </form>
 </AdminLayout>
 <script>
   import { clientWrite } from '../../lib/api';
+  import { notify } from '../../lib/toast';
   document.addEventListener('astro:page-load', () => {
     const form = document.querySelector<HTMLFormElement>('#create-user');
     if (!form || form.dataset.bound) return;
     form.dataset.bound = 'true';
     form.addEventListener('submit', async event => {
       event.preventDefault(); const button = form.querySelector('button')!; button.disabled = true;
-      try { await clientWrite('/admin/users', 'POST', Object.fromEntries(new FormData(form))); window.location.reload(); }
-      catch (error) { document.querySelector('#user-notice')!.textContent = String(error); button.disabled = false; }
+      try { await clientWrite('/admin/users', 'POST', Object.fromEntries(new FormData(form))); notify('账号已创建。', 'success', {persist:true}); window.location.reload(); }
+      catch (error) { notify(String(error), 'error'); button.disabled = false; }
     });
   });
 </script>

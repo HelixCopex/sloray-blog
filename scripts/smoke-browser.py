@@ -23,7 +23,8 @@ import struct
 import zlib
 def png():
     def chunk(k,b): return struct.pack('>I',len(b))+k+b+struct.pack('>I',zlib.crc32(k+b))
-    return b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',400,200,8,2,0,0,0))+chunk(b'IDAT',zlib.compress((b'\0'+b'\x33\x66\x99'*400)*200))+chunk(b'IEND',b'')
+    pixels = b''.join(b'\0'+b''.join(bytes((0x33,0x66,0x99) if (x//20+y//20)%2 else (0xe7,0xbc,0x80)) for x in range(400)) for y in range(200))
+    return b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',400,200,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(pixels))+chunk(b'IEND',b'')
 
 with objects_module.Objects() as objects, App() as app:
     config=json.loads((app.root/'config.json').read_text())
@@ -35,6 +36,8 @@ with objects_module.Objects() as objects, App() as app:
     guide = '# 第一章\n\n' + paragraphs + '## 细节与注释\n\n' + paragraphs + '# 第二章\n\n' + paragraphs + '# 第三章\n\n' + paragraphs
     assert app.json('/api/v1/admin/posts','POST',{'slug':'toc-guide','title':'阅读随动指南','body_md':guide,'status':'published'})[0]==201
     assert app.json('/api/v1/admin/pages','POST',{'slug':'toc-page','title':'页面阅读指南','body_md':guide,'status':'published','show_in_nav':False,'nav_order':0})[0]==201
+    images = '# 图片聚焦\n\n![横图](/test-focus.png){width=400 height=200}\n\n占位之后的正文。\n\n![竖图](/test-portrait.png){width=200 height=400}'
+    assert app.json('/api/v1/admin/posts','POST',{'slug':'image-focus','title':'图像加载指南','body_md':images,'status':'published'})[0]==201
     app.start_web()
     class Proxy(http.server.BaseHTTPRequestHandler):
         def log_message(self, *_args): pass
@@ -66,7 +69,10 @@ with objects_module.Objects() as objects, App() as app:
     image=app.root/'cover.png'; image.write_bytes(png())
     try:
         env=app.env|{'SLORAY_BROWSER_URL':f'http://127.0.0.1:{server.server_port}','SLORAY_BROWSER_IMAGE':str(image)}
-        subprocess.run([os.environ.get('NODE_BIN','node'),str(ROOT/'web/scripts/browser-test.mjs')],env=env,check=True)
+        if os.environ.get('SLORAY_TEST_ZEN') != 'only':
+            subprocess.run([os.environ.get('NODE_BIN','node'),str(ROOT/'web/scripts/browser-test.mjs')],env=env,check=True)
+        if os.environ.get('SLORAY_TEST_ZEN') in ('1', 'only'):
+            subprocess.run([os.environ.get('NODE_BIN','node'),str(ROOT/'web/scripts/zen-browser.mjs')],env=env,check=True)
     finally:
         stopped.set(); worker_thread.join(timeout=40)
         server.shutdown(); server.server_close(); thread.join()

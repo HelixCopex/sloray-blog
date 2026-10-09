@@ -5,7 +5,7 @@ export async function testExperience(page, origin, audit) {
   check(await page.getByRole('link', {name:'首页',exact:true}).count() === 0, 'home navigation button remains');
   await page.evaluate(() => { window.__widgetProof = 'stable'; });
   await page.locator('widget-card').first().getByRole('button').click();
-  await page.locator('widget-card').first().getByText('已更新', {exact:true}).waitFor();
+  await page.getByText('已更新', {exact:true}).waitFor();
   check(await page.evaluate(() => window.__widgetProof) === 'stable', 'widget refresh reloaded document');
   check(await page.locator('.site-dock').innerText() === '', 'Dock contains visible text');
   check(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundImage) === 'none', 'default background gradient remains');
@@ -63,7 +63,7 @@ async function testReadingToc(page, origin, audit) {
   check(await page.locator('.reading-content').evaluate(el => el.getBoundingClientRect().width <= 760), 'ultrawide prose width unbounded');
   await audit();
   await page.setViewportSize({width:390,height:844});
-  check(await toc.locator('details').getAttribute('open') === null, 'mobile TOC did not collapse');
+  await page.waitForFunction(() => !document.querySelector('reading-toc details').open);
   await toc.locator('summary').click();
   await audit();
   await page.screenshot({path:'/tmp/sloray-reading-mobile-menu.png',fullPage:false});
@@ -96,7 +96,7 @@ export async function testIdentity(page, context, origin, audit) {
   await page.getByLabel('站点名称',{exact:true}).fill('微光书房');
   await page.getByLabel('Favicon 图片地址',{exact:true}).fill('/favicon.svg');
   await page.getByRole('button',{name:'保存站点标识',exact:true}).click();
-  await page.getByText('站点标识已保存，公开页面刷新后生效。',{exact:true}).waitFor();
+  await page.locator('.toast[data-kind=success]').getByText('站点标识已保存，公开页面刷新后生效。',{exact:true}).waitFor();
   await audit();
   await page.goto(origin);
   check(await page.title() === '微光书房', 'site title not configured');
@@ -106,7 +106,7 @@ export async function testIdentity(page, context, origin, audit) {
   await page.getByLabel('站点名称',{exact:true}).fill('静线数据库');
   await page.getByLabel('Favicon 图片地址',{exact:true}).fill('');
   await page.getByRole('button',{name:'保存站点标识',exact:true}).click();
-  await page.getByText('站点标识已保存，公开页面刷新后生效。',{exact:true}).waitFor();
+  await page.locator('.toast[data-kind=success]').getByText('站点标识已保存，公开页面刷新后生效。',{exact:true}).waitFor();
   console.log('PASS 设置页站点名称/Favicon 保存、页面标题/导航/RSS 同步与恢复默认');
 }
 
@@ -157,6 +157,7 @@ async function testDockActions(page, origin, audit) {
   await page.locator('#search-dialog-q').press('Escape');
   await page.locator('[data-search-dialog]').waitFor({state:'hidden'});
   await page.setViewportSize({width:320,height:844});
+  await page.waitForFunction(() => [...document.querySelectorAll('site-dock nav a')].filter(link => !link.hidden).length === 2);
   check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.querySelector('.dock-panel').scrollWidth <= document.querySelector('.dock-panel').clientWidth), 'post Dock overflows 320px');
   await page.getByRole('button',{name:'评论',exact:true}).waitFor();
   check(await page.getByRole('button',{name:'评论',exact:true}).isVisible(), 'mobile collapsed Dock hides comment');

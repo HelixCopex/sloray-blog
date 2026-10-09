@@ -1,3 +1,6 @@
+import './image-loader';
+import './toast-runtime.js';
+
 // One delegated listener survives ClientRouter navigation; ripples never capture input.
 document.addEventListener('pointerdown', event => {
   if (event.button !== 0 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;

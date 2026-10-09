@@ -1,0 +1,20 @@
+@layer components {
+  .image-frame { display: block; position: relative; overflow: hidden; isolation: isolate; width: min(100%, var(--image-width, 100%)); aspect-ratio: var(--image-aspect, 16 / 9); border-radius: 16px; background: var(--surface-high); }
+  .image-frame::after { content: ''; position: absolute; inset: 0; z-index: 1; background: var(--surface-high); pointer-events: none; opacity: 0; }
+  .image-frame > img { display: block; position: absolute; inset: 0; width: 100%; height: 100%; max-height: none; object-fit: contain; border-radius: inherit; margin: 0; }
+  html[data-image-effects] .image-frame:not([data-state=ready])::after { opacity: 1; }
+  html[data-image-effects] .image-frame:not([data-state=ready]) > img { opacity: 0; }
+  html[data-image-effects] .image-frame[data-state=error]::after { content: '图片暂时无法显示'; display: grid; place-items: center; color: var(--fg-muted); font-size: .85rem; }
+  .cover-picker .image-frame { width: min(240px, 100%); margin-block: 1rem; }
+  .cover-picker .image-frame > img { width: 100%; height: 100%; margin: 0; max-height: none; }
+  .media-grid .image-frame { width: 100%; height: 140px; aspect-ratio: auto; }
+  .dock-favicon-frame { width: 28px; height: 28px; border-radius: 8px; background: transparent; }
+  .dock-favicon-frame::after { background: var(--dock-circle, var(--surface-high)); }
+  @media (prefers-reduced-motion: no-preference) {
+    html[data-image-effects] .image-frame > img { transition: filter var(--md-duration-long-2) var(--md-easing-emphasized-decelerate), opacity var(--md-duration-long-2) var(--md-easing-standard); }
+    html[data-image-effects] .image-frame:not([data-state=ready]) > img { filter: blur(24px); }
+    html[data-image-effects] .image-frame::after { transition: opacity var(--md-duration-long-2) var(--md-easing-standard); }
+    html[data-image-effects] .image-frame[data-state=loading] > img, html[data-image-effects] .image-frame[data-state=loading]::after { transition: none; }
+  }
+  @media (forced-colors: active) { .image-frame { border: 1px solid CanvasText; } }
+}

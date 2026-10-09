@@ -8,6 +8,8 @@ import '../styles/dock.css';
 import '../styles/home.css';
 import '../styles/reading.css';
 import '../styles/page-motion.css';
+import '../styles/images.css';
+import '../styles/toasts.css';
 import ActionDialogs from '../components/ActionDialogs.astro';
 import type { DockContext } from '../lib/dock-context';
 
@@ -19,7 +21,12 @@ interface Props {
 
 const { title, description = '记录、分享与讨论，在文字里连接想法。' } = Astro.props;
 const dockContext = Astro.props.dockContext ?? { kind: Astro.url.pathname === '/' ? 'home' : Astro.url.pathname === '/search' ? 'search' : Astro.url.pathname.startsWith('/admin') ? 'admin' : 'other' };
-const motion = { forwards: { old: { name: 'page-away', duration: '180ms', easing: 'cubic-bezier(.4,0,1,1)' }, new: { name: 'page-arrive', duration: '300ms', easing: 'cubic-bezier(.2,.8,.2,1)' } }, backwards: { old: { name: 'page-back-away', duration: '180ms', easing: 'cubic-bezier(.4,0,1,1)' }, new: { name: 'page-back-arrive', duration: '300ms', easing: 'cubic-bezier(.2,.8,.2,1)' } } };
+const outgoing = { duration: '200ms', easing: 'var(--md-easing-emphasized-accelerate)' };
+const incoming = { duration: '350ms', delay: '100ms', easing: 'var(--md-easing-emphasized-decelerate)' };
+const motion = {
+  forwards: { old: { name: 'page-away', ...outgoing }, new: { name: 'page-arrive', ...incoming } },
+  backwards: { old: { name: 'page-back-away', ...outgoing }, new: { name: 'page-back-arrive', ...incoming } },
+};
 const theme = Astro.locals.theme ?? defaultTheme;
 const canonical = new URL(Astro.url.pathname, Astro.locals.publicSiteUrl ?? Astro.site ?? Astro.url.origin);
 const siteName = Astro.locals.siteIdentity?.site_name ?? '静线数据库';
@@ -32,6 +39,7 @@ const pageTitle = title.includes('静线数据库') ? title.replaceAll('静线�
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script is:inline>document.documentElement.dataset.imageEffects = 'true';</script>
     <title>{pageTitle}</title>
     <link rel="icon" href={favicon} />
     <link rel="alternate" type="application/rss+xml" title={siteName} href="/rss.xml" />
@@ -70,11 +78,14 @@ const pageTitle = title.includes('静线数据库') ? title.replaceAll('静线�
       <Nav context={dockContext} />
     </header>
 
+    <slot name="chrome" />
+
     <main id="content" tabindex="-1" transition:name="page-content" transition:animate={motion}>
       <slot />
     </main>
 
     <ActionDialogs />
+    <toast-stack class="toast-stack" popover="manual" aria-label="操作通知" transition:persist="site-toasts" transition:animate="none"></toast-stack>
     <footer class="site">
       {theme.layout.footer}
     </footer>

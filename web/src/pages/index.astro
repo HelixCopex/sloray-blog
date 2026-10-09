@@ -24,7 +24,7 @@ Astro.response.headers.set('Cache-Control', 'no-store');
         : row.kind === 'pages' ? <PageDirectory server:defer><p slot="fallback" class="muted">正在读取页面…</p></PageDirectory>
         : <section id="posts" aria-label="文章列表">
           <div class="stream-heading">{hasHero ? <h2>{row.title || '文章'}</h2> : <h1>{row.title || '文章'}</h1>}<span class="meta">按时间，慢慢读</span></div>
-          {unavailable ? <p role="status">文章服务暂时不可达，请稍后重试。</p> : page.items.length === 0 && <div class="empty-state"><Icon name="edit" /><p>这里留给下一篇值得记录的故事。</p><p class="hint">还没有已发布的文章。</p></div>}
+          {unavailable ? <p role="alert">文章服务暂时不可达，请稍后重试。</p> : page.items.length === 0 && <div class="empty-state"><Icon name="edit" /><p>这里留给下一篇值得记录的故事。</p><p class="hint">还没有已发布的文章。</p></div>}
           <ul class="post-list">{page.items.map(post => <li><PostCard post={post} /></li>)}</ul>
           {page.next_cursor && <a class="button-link tonal" href={`/?cursor=${encodeURIComponent(page.next_cursor)}#posts`}>下一页</a>}
         </section>}

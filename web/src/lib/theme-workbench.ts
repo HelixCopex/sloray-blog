@@ -7,6 +7,7 @@ import dock from '../styles/dock.css?raw';
 import home from '../styles/home.css?raw';
 import icons from '../assets/material-icons.svg?raw';
 import { homeComposer } from './home-composer';
+import { notify as toast, type ToastKind } from './toast';
 type Theme = components['schemas']['Theme'];
 type Package = components['schemas']['ThemePackage'];
 type State = components['schemas']['ThemeState'];
@@ -21,11 +22,10 @@ class ThemeWorkbench extends HTMLElement {
     let dirty = false;
     let busy = false;
     const form = this.querySelector<HTMLFormElement>('[data-theme-form]')!;
-    const status = this.querySelector<HTMLElement>('[data-theme-status]')!;
     const preview = this.querySelector<HTMLIFrameElement>('[data-theme-preview]')!;
     const loadComposer = homeComposer(form);
     const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement;
-    const notify = (message: string) => { status.textContent = message; };
+    const notify = (message: string, kind: ToastKind = 'success') => { if (message) toast(message, kind); };
     const read = (): Package => ({ schema_version: 1, name: field('name').value, description: field('description').value,
       palette: field('palette').value, font: field('font').value, css: field('css').value,
       background: { image_url: field('background_image_url').value.trim(), blur: Number(field('background_blur').value), overlay: Number(field('background_overlay').value), panel_blur: Number(field('background_panel_blur').value) },
@@ -64,7 +64,7 @@ class ThemeWorkbench extends HTMLElement {
     };
     const run = async (action: () => Promise<void>) => {
       if (busy) return; lock(true);
-      try { await action(); } catch (error) { notify(`操作失败：${String(error)}。如提示版本冲突，请重新打开主题页。`); }
+      try { await action(); } catch (error) { notify(`操作失败：${String(error)}。如提示版本冲突，请重新打开主题页。`, 'error'); }
       finally { lock(false); }
     };
     let timer: ReturnType<typeof setTimeout>;

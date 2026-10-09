@@ -1,6 +1,7 @@
 import { navigate } from 'astro:transitions/client';
 import { clientWrite } from './api';
 import type { DockContext } from './dock-context';
+import { notify } from './toast';
 class ActionDialogs extends HTMLElement {
   private controller?: AbortController;
   connectedCallback() {
@@ -72,8 +73,8 @@ class ActionDialogs extends HTMLElement {
       const data = new FormData(form); submitting = true; submit.disabled = true; controls.forEach(control => control.disabled = true);
       try {
         await clientWrite(`/posts/${encodeURIComponent(context.slug)}/comments`, 'POST', { guest_name: data.get('guest_name'), body_md: data.get('body_md'), parent_id: data.get('parent_id') || null, website: data.get('website') });
-        form.reset(); controls.forEach(control => control.disabled = false); baseline = JSON.stringify([...new FormData(form)]); comment.querySelector('[data-comment-notice]')!.textContent = '评论已提交，审核通过后显示。';
-      } catch (error) { comment.querySelector('[data-comment-notice]')!.textContent = String(error); }
+        form.reset(); controls.forEach(control => control.disabled = false); baseline = JSON.stringify([...new FormData(form)]); notify('评论已提交，审核通过后显示。', 'success');
+      } catch (error) { notify(String(error), 'error'); }
       finally { submitting = false; submit.disabled = false; controls.forEach(control => control.disabled = false); }
     }, { signal });
   }

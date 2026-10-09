@@ -17,16 +17,28 @@ const links = [
 ];
 ---
 <BaseLayout title={title}>
-  <div class="admin-shell">
-    <div class="admin-bar">
+  <div slot="chrome" class="admin-chrome">
+    <div class="admin-bar" transition:persist="admin-tabs" transition:animate="none">
       <nav aria-label="后台导航">{links.map(link => <a href={link.href} aria-current={current.startsWith(link.href) ? 'page' : undefined} data-astro-prefetch="false" data-astro-reload={link.href === '/admin/settings' || undefined}><Icon name={link.icon} />{link.label}</a>)}</nav>
       {session?.user && <div class="admin-account"><span>{session.user.display_name}</span><button type="button" data-logout><Icon name="logout" />退出登录</button></div>}
     </div>
+  </div>
+  <div class="admin-shell">
     <slot />
   </div>
 </BaseLayout>
 <script>
   import { clientGet, type Session } from '../lib/api';
+  import { notify } from '../lib/toast';
+  document.addEventListener('astro:before-swap', event => {
+    const incoming = event.newDocument.querySelector('.admin-bar');
+    const current = document.querySelector('.admin-bar');
+    if (!incoming || !current) return;
+    current.querySelectorAll('a').forEach(link => {
+      const next = incoming.querySelector(`a[href="${link.getAttribute('href')}"]`);
+      if (next?.hasAttribute('aria-current')) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
+    });
+  });
   document.addEventListener('astro:page-load', () => {
     const button = document.querySelector<HTMLButtonElement>('[data-logout]');
     if (!button || button.dataset.bound) return;
@@ -40,7 +52,7 @@ const links = [
         const input = document.createElement('input');
         input.type = 'hidden'; input.name = 'csrf_token'; input.value = session.csrf_token;
         form.append(input); document.body.append(form); form.submit();
-      } catch { button.disabled = false; button.textContent = '退出失败，点击重试'; }
+      } catch { button.disabled = false; notify('退出失败，请重试。', 'error'); }
     });
   });
 </script>

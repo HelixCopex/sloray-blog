@@ -2,6 +2,8 @@ import { chromium } from 'playwright';
 import fs from 'node:fs';
 import { testThemes } from './theme-browser.mjs';
 import { testExperience, testIdentity } from './experience-browser.mjs';
+import { testMotion } from './motion-browser.mjs';
+import { testAdminChrome } from './admin-experience.mjs';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const axeSource = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
@@ -18,6 +20,7 @@ page.on('console', message => {
 });
 function check(value, message) { if (!value) throw new Error(message); }
 async function audit() {
+  await page.evaluate(() => Promise.all([...document.querySelectorAll('.toast')].flatMap(node => node.getAnimations().map(animation => animation.finished.catch(() => {})))));
   await page.evaluate(axeSource);
   const result = await page.evaluate(async () => window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a','wcag2aa','wcag21aa'] } }));
   check(result.violations.length === 0, JSON.stringify(result.violations.map(v => ({ id:v.id, targets:v.nodes.map(n => ({target:n.target,summary:n.failureSummary})) }))));
@@ -32,6 +35,7 @@ try {
   await page.emulateMedia({colorScheme:'dark'}); await audit();
   await page.emulateMedia({colorScheme:'light'});
   await testExperience(page, origin, audit);
+  await testMotion(page, origin, audit);
   await page.evaluate(() => { window.__navigationProof = 'persistent'; });
   await page.getByRole('link', { name:'浏览器测试文章', exact:true }).click();
   await page.locator('.discussion[data-bound=true]').waitFor();
@@ -63,6 +67,7 @@ try {
   await page.locator('input[name=password]').fill('a-test-only-password');
   await page.getByRole('button', {name:'登录',exact:true}).click();
   await page.waitForURL('**/admin/posts');
+  await testAdminChrome(page, origin, audit);
   check(await page.getByRole('link', {name:'管理后台',exact:true}).count() === 1, 'logged-in admin entry missing');
   await page.goto(origin + '/admin/settings');
   await audit();
@@ -106,21 +111,21 @@ try {
     headers:{'Access-Control-Allow-Origin':'*'},
     body:'<Error><Code>AccessDenied</Code><RequestId>test-storage-request</RequestId><Message>sensitive-message X-Amz-Signature=test-secret</Message></Error>'}));
   await page.getByRole('button', {name:'上传所选图片',exact:true}).click();
-  await page.locator('[data-media-notice]').filter({hasText:'HTTP 403 / AccessDenied'}).waitFor();
+  await page.locator('.toast[data-kind=error]').filter({hasText:'HTTP 403 / AccessDenied'}).waitFor();
   check(await page.locator('[data-media-error]').isVisible(), 'HTTP failure details are hidden');
   let details = await page.locator('[data-media-error-details]').textContent();
   check(details.includes('失败阶段：原图上传') && details.includes('存储请求编号：test-storage-request'), 'HTTP diagnostic fields missing');
   await page.unroute(uploadPattern);
   await page.route(uploadPattern, route => route.abort('failed'));
   await page.getByRole('button', {name:'上传所选图片',exact:true}).click();
-  await page.locator('[data-media-notice]').filter({hasText:'原图上传连接失败'}).waitFor();
+  await page.locator('.toast[data-kind=error]').filter({hasText:'原图上传连接失败'}).waitFor();
   details = await page.locator('[data-media-error-details]').textContent();
   check(details.includes('HTTP 状态：0') && details.includes('本站 Origin：' + origin) && details.includes('CORS') && details.includes('if-none-match'), 'network/CORS diagnostic fields missing');
   await page.unroute(uploadPattern);
   await page.route('**/api/v1/admin/media/presign', route => route.fulfill({status:403, contentType:'application/json',
     body:JSON.stringify({error:{code:'forbidden',message:'无权申请上传许可'}})}));
   await page.getByRole('button', {name:'上传所选图片',exact:true}).click();
-  await page.locator('[data-media-notice]').filter({hasText:'申请上传许可：无权申请上传许可'}).waitFor();
+  await page.locator('.toast[data-kind=error]').filter({hasText:'申请上传许可：无权申请上传许可'}).waitFor();
   details = await page.locator('[data-media-error-details]').textContent();
   check(details.includes('HTTP 状态：403') && details.includes('API 错误代码：forbidden'), 'API failure stage/status missing');
   await page.unroute('**/api/v1/admin/media/presign');
@@ -135,7 +140,7 @@ try {
   await page.getByRole('button', {name:'复制图片 Markdown',exact:true}).click();
   await page.getByText('Markdown 图片链接已复制，返回正文粘贴即可。', {exact:true}).waitFor();
   const markdown = await page.evaluate(() => navigator.clipboard.readText());
-  check(markdown.startsWith('![封面 \\[示例\\]](<') && markdown.endsWith('.webp>)'), 'clipboard is not escaped image Markdown');
+  check(markdown.startsWith('![封面 \\[示例\\]](<') && markdown.endsWith('.webp>){width=400 height=200}'), 'clipboard is not escaped image Markdown with dimensions');
   check(await page.locator('#body').inputValue() === originalBody, 'copy action changed body');
   await audit();
   await page.getByRole('button', {name:'设为封面',exact:true}).click();
@@ -146,8 +151,19 @@ try {
   await page.waitForURL(/\/admin\/posts\/[0-9a-f-]+$/);
   await page.locator('#editor[data-bound=true]').waitFor();
   await page.locator('#summary').fill('再次保存');
+  const externalDimensions = '{width=400 height=200}';
+  const unsized = markdown.replace(/\{width=400 height=200\}$/, '');
+  await page.locator('#body').fill(originalBody + '\n\n' + markdown + '\n\n' + unsized);
+  const publicImagePattern = '**/test-public/**';
+  await page.route(publicImagePattern, route => route.abort('failed'));
   await page.getByRole('button', {name:'发布文章',exact:true}).click();
   await page.getByText('已保存（版本 2）。', {exact:true}).waitFor();
+  check((await page.locator('#body').inputValue()).endsWith(externalDimensions), 'save did not capture external image dimensions');
+  const saved = await (await context.request.get(origin + '/api/v1/admin/posts/' + page.url().split('/').at(-1))).json();
+  check(saved.body_md.endsWith(externalDimensions), 'image dimensions were not persisted with the article');
+  const revisions = await (await context.request.get(origin + '/api/v1/admin/posts/' + saved.id + '/revisions')).json();
+  check(revisions.items.some(revision => revision.body_md.endsWith(externalDimensions)), 'revision history lost image dimensions');
+  await page.unroute(publicImagePattern);
   await page.getByRole('button', {name:'打开媒体选择器',exact:true}).click();
   await page.getByRole('button', {name:'复制图片 Markdown',exact:true}).waitFor();
   await page.evaluate(() => { Object.defineProperty(navigator, 'clipboard', {configurable:true, value:{writeText:async () => {throw new Error('denied');}}}); });

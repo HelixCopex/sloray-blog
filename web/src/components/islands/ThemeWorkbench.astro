@@ -13,7 +13,6 @@ try {
 ---
 {allowed && state ? <theme-workbench data-themes={JSON.stringify(themes)} data-state={JSON.stringify(state)}>
   <div class="card"><div class="actions"><button type="button" data-new><Icon name="add" />新建主题</button><button type="button" data-import><Icon name="upload" />导入主题包</button><button type="button" data-reset><Icon name="close" />恢复默认</button></div><input type="file" data-import-file accept="application/json,.json" hidden /><p data-active class="muted"></p><div class="theme-library" data-library role="group" aria-label="已保存的主题"></div></div>
-  <p role="status" aria-live="polite" class="theme-status" data-theme-status></p>
   <div class="theme-workspace">
     <form data-theme-form>
       <fieldset><legend>主题信息</legend><label for="theme-name">主题名称</label><input id="theme-name" name="name" required maxlength="100" /><label for="theme-description">说明</label><textarea id="theme-description" name="description" maxlength="1000" rows="2" /></fieldset>

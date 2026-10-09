@@ -52,6 +52,7 @@ pub fn page(title: &str, body: &str) -> String {
 <meta name="robots" content="noindex, nofollow">
 <title>{title}</title>
 <style>{css}
+{toast_css}
 .skip-link {{ position: absolute; left: -10000px; }} .skip-link:focus {{ left: 1rem; }}
 main {{ width: min(100%, 760px); margin: 2rem auto; padding: 1.5rem; }}
 .settings-dock {{ position: fixed; z-index: 10; left: max(24px,calc((100vw - 1440px)/2)); top: 2rem; width: 76px; padding: 9px; background: var(--surface-container); border: 1px solid var(--outline); border-radius: 40px; box-shadow: 0 8px 32px rgb(0 0 0 / .16); }}
@@ -68,9 +69,11 @@ footer {{ margin-top: 2rem; color: var(--fg-muted); font-size: .85rem; }}
 <body>{icons}<a class="skip-link" href='#content'>跳到内容</a><main id="content">
 {body}
 <footer>sloray-blog · <code>{version}</code></footer>
-</main></body></html>"#,
+</main><script>{toast_script}</script></body></html>"#,
         css = include_str!("../../../web/src/styles/material.css"),
         icons = include_str!("../../../web/src/assets/material-icons.svg"),
+        toast_css = include_str!("../../../web/src/styles/toasts.css"),
+        toast_script = include_str!("../../../web/src/lib/toast-runtime.js"),
         title = escape(title),
         body = body,
         version = env!("CARGO_PKG_VERSION"),

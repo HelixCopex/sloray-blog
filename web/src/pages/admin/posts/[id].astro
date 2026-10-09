@@ -45,7 +45,6 @@ const localDate = post?.published_at ? new Date(new Date(post.published_at).getT
       <button type="submit" class="editor-action-fallback"><Icon name="save" />保存</button>
       <a class="editor-action-fallback" data-public-link href={post ? `/posts/${encodeURIComponent(post.slug)}` : '#'} hidden={post?.status !== 'published'} target="_blank" rel="noopener">查看已发布文章</a>
       {post && <button data-delete-content type="button" class="danger editor-action-fallback"><Icon name="delete" />删除文章</button>}
-      <p id="editor-notice" role="status" aria-live="polite"></p>
     </form>
     {admin && <MediaPicker allowCover />}
     <details><summary>修订历史</summary><ul>{revisions?.items.map(revision => <li><time datetime={revision.created_at}>{new Date(revision.created_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}</time> · {revision.title}<pre>{revision.body_md}</pre></li>)}</ul>{revisions?.next_cursor && <a href={`?revisions=${encodeURIComponent(revisions.next_cursor)}`}>更早的修订</a>}</details>

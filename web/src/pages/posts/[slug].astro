@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import LoadingImage from '../../components/ui/LoadingImage.astro';
 import { serverGet, ApiRequestError, type Post } from '../../lib/api';
 import { renderArticle } from '../../lib/render-markdown';
 import type { components } from '../../lib/schema';
@@ -30,7 +31,7 @@ const jsonLd = post && JSON.stringify({ '@context': 'https://schema.org', '@type
     <header class="reading-header">
     <h1>{post.title}</h1>
     <p class="meta">{post.author_name} · {post.published_at && <time datetime={post.published_at}>{new Date(post.published_at).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' })}</time>}</p>
-    {cover?.ready && cover.variants.length > 0 && <img src={cover.variants.at(-1)!.url} srcset={cover.variants.map(v => `${v.url} ${v.width}w`).join(', ')} sizes="(max-width: 768px) 100vw, 768px" width={cover.width ?? undefined} height={cover.height ?? undefined} alt={`${post.title}封面`} class="cover" fetchpriority="high" />}
+    {cover?.ready && cover.variants.length > 0 && <LoadingImage src={cover.variants.at(-1)!.url} srcset={cover.variants.map(v => `${v.url} ${v.width}w`).join(', ')} sizes="(max-width: 768px) 100vw, 768px" width={cover.width ?? undefined} height={cover.height ?? undefined} alt={`${post.title}封面`} class="cover" fetchpriority="high" />}
     <p class="reading-summary">{post.summary}</p><ReadingProgress />
     </header>
     <div class="reading-layout">

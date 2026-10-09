@@ -203,3 +203,12 @@ CI 使用 PostgreSQL 18 与匹配版本客户端，另有隔离 PITR job；
 SSR 负责提供资源身份与可见操作，持久 Dock 以稳定动作键同步新页面，保留原有按钮节点与动画。
 搜索/评论使用原生 dialog；文章主要操作与后台编辑主要操作集中于 Dock。
 异步统计/点赞通过页面代次隔离，旧文章结果不能覆盖新文章状态；业务权限、审核、CSRF 与版本锁继续由 Rust 执行。
+
+MD3 切页和图片内容属性见 [ADR-0024](adr/0024-material-motion-and-content-image-dimensions.md)。
+图片宽高在 body_md 中保存并随修订保留；共用 Markdown AST 解析属性，清洗后控件按原始比例预留空间。
+浏览器在保存前读取外部图片缺失尺寸，SSR 不访问任意图片 URL。图片解码只改变绘制状态，切页仅使用位移和透明度。
+
+后台持久导航与统一操作通知见 [ADR-0025](adr/0025-persistent-admin-chrome-and-operation-toasts.md)。
+Tab 位于正文动效外，快照取消尺寸插值；文章进度轨道透明，独立页面不渲染进度。
+Astro 和 Rust 页面共享原生 Toast，完整导航后的反馈只使用一次性浏览器消息。
+图片保存优先读取媒体元数据，单张远端图片尺寸失败不阻断保存，并以警告 Toast 提醒补全。

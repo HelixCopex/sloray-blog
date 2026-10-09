@@ -36,6 +36,10 @@ article:has(>.prose),main>.prose { max-width: var(--reading-width); margin-inlin
 .honeypot { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
 .admin-bar,.admin-bar nav,.admin-account,.picker-heading,.editor-toolbar,.actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
 .admin-bar { justify-content: space-between; padding: 1rem; border-radius: 20px; background: var(--surface-container); margin-bottom: 2rem; }
+.admin-chrome { width: min(100%, var(--content-width), 1280px); margin-inline: auto; padding: 2.5rem 1.5rem 0; }
+.admin-chrome .admin-bar { margin-bottom: 0; }
+body:has(.admin-chrome) main { padding-top: 1.5rem; }
+theme-workbench { display: block; }
 .admin-account { font-size: .9rem; color: var(--fg-muted); }
 .content-list { list-style: none; padding: 0; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
 .content-list li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.25rem; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
