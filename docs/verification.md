@@ -625,3 +625,68 @@ PASS 全部上游不可用时正确返回失败
 新增 /admin/themes 与 /_server-islands/ThemeWorkbench 路径分流断言。
 actionlint 1.7.12、git diff --check 退出 0。新前端单元回归、主题 API 冒烟、主题浏览器流程及
 20 表备份核对已接入 CI；尚未推送，以上结果不等于远程 CI 成功。
+
+## 13. 开发启动器适配页面与主题（2026-10-09）
+
+`dev-start.sh` 每次按冻结锁文件同步前端依赖，检查 Node ≥22.12；API 数据库就绪后，
+使用与 API / worker 相同的绝对配置路径执行 `migrate up`。迁移成功后启动 worker，
+迁移失败则停止本次 API / Astro；首次未配置或数据库不可达时保留安装入口。
+迁移进程也纳入 Ctrl+C / SIGTERM 进程组清理，日志为私有 `migrate.log`。
+
+实际执行 `python3 -u scripts/test-dev-start.py`，输出：
+
+```text
+PASS 首次依赖安装、旧 web 配置复用、等待数据库和迁移后启动 worker、私有日志及 Ctrl+C 清理
+PASS 相对路径共用配置、worker 失败停止全部服务、未输出配置密钥
+PASS 迁移失败阻止 worker，停止 API/Astro 并提示迁移日志
+PASS Ctrl+C 中断迁移时清理迁移进程组及子进程
+PASS 锁定依赖安装失败时不启动任何业务服务
+PASS 无配置首次启动保留 /setup，SIGTERM 停止全部服务
+PASS 端口冲突及两份配置时明确拒绝启动，不接管既有进程
+```
+
+在 `/tmp` 独立 PostgreSQL 集群的 UUID 临时库上执行 `scripts/smoke-dev-start.py`。
+只将该一次性库降至四条迁移，保留既有文章，再调用真实启动器验证升级。
+重复启动等待迁移完成和 worker 启动后，核对文章、默认页面与已启用主题未被覆盖。
+实际输出：
+
+```text
+PASS 自动升级四迁移旧库到六迁移/20 表、保留原有文章、页面与主题 API/SSR/群岛可用
+PASS 统一启动真实 API/Astro/worker、同源代理、自动消费媒体任务及公开 WebP 可访问
+PASS 统一启动器 Ctrl+C 停止真实服务，API / Astro 端口均释放
+PASS 已升级开发库重复启动幂等，不重建页面、不覆盖已启用主题或文章
+```
+
+其余实际门禁：`cargo fmt --all -- --check`、
+`cargo clippy --locked --workspace --all-targets -- -D warnings`、
+`cargo test --locked --workspace` 均退出 0；Rust 各测试组实际为
+9 / 10 / 7 / 4 / 11 / 7 / 11 项通过，合计 59 项。
+`pnpm --dir web run api:check`、`test`、`check`、`build` 均退出 0，实际输出摘录：
+
+```text
+ℹ tests 8
+ℹ pass 8
+ℹ fail 0
+Result (51 files):
+- 0 errors
+- 0 warnings
+- 0 hints
+[build] Complete!
+```
+
+构建仍有前节记录的五条上游 MDX/HAST `MODULE_LEVEL_DIRECTIVE` 提示。
+本次 `./scripts/check-architecture.sh` **在线执行成功**，实际输出：
+
+```text
+== 单文件行数上限：500 行（*.rs 与 *.sh） ==
+  ✓ 全部合规
+advisories ok, bans ok, licenses ok, sources ok
+  ✓ advisories / bans / licenses / sources 全部通过
+  ✓ crate 依赖方向 / workspace 版本引用 / unsafe 禁令通过
+结果：全部通过
+```
+
+`deploy/scripts/test-activate-release.sh` 实际输出“结果：全部通过”；
+`bash -n`、Python 编译检查与 `git diff --check` 退出 0。
+测试完成后删除临时测试库并停止专用测试集群；未访问现有开发或生产数据库。
+以上是本地验证，未推送，不能替代远程 CI。

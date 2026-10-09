@@ -1,15 +1,18 @@
 #!/usr/bin/env bash
-# 同一份配置启动独立 API / Astro / worker；只清理本次创建的进程组。
+# 同一份配置启动 API / Astro，应用迁移后启动 worker；只清理本次创建的进程组。
 set -euo pipefail
 umask 077
 
 die() { printf '错误：%s\n' "$*" >&2; exit 1; }
 [[ $# == 0 ]] || die "用法：$0（配置及端口通过环境变量指定，见 docs/development.md）"
 REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-for tool in cargo pnpm python3 curl setsid; do
+for tool in cargo node pnpm python3 curl setsid; do
   command -v "$tool" >/dev/null 2>&1 || die "缺少 $tool；见 docs/development.md"
 done
-[[ -d "$REPO/web/node_modules" ]] || die "先在 web 运行 pnpm install --frozen-lockfile"
+node -e 'const [major, minor] = process.versions.node.split(".").map(Number);
+  if (major < 22 || (major === 22 && minor < 12)) {
+    console.error("错误：Astro 需要 Node ≥ 22.12；见 docs/development.md"); process.exit(1);
+  }'
 
 if [[ -z ${SLORAY_CONFIG_FILE:-} ]]; then
   if [[ -f "$REPO/.dev-cache/runtime/config.json" && -f "$REPO/web/.dev-cache/runtime/config.json" ]]; then
@@ -48,6 +51,8 @@ LOG_DIR="$REPO/.dev-cache/dev"
 mkdir -p -- "$LOG_DIR"
 chmod 0700 "$LOG_DIR"
 cd "$REPO"
+printf '同步前端锁定依赖并构建 Rust 开发二进制…\n'
+pnpm --dir "$REPO/web" install --frozen-lockfile
 cargo build --locked --bin sloray
 # 与 cargo 的标准自定义构建目录保持一致。
 BINARY="${CARGO_TARGET_DIR:-$REPO/target}/debug/sloray"
@@ -85,23 +90,33 @@ start() {
 start api "$BINARY" serve --bind "127.0.0.1:$API_PORT"
 start web pnpm --dir "$REPO/web" exec astro dev --host 127.0.0.1 --port "$WEB_PORT" --ignore-lock
 printf '浏览器：http://127.0.0.1:%s\n配置：%s\n' "$WEB_PORT" "$SLORAY_CONFIG_FILE"
-printf '等待 API 就绪后启动 worker；首次请先启动数据库并在 /setup 完成初始化。\n'
+printf '数据库就绪后自动应用待执行迁移（含页面和主题），成功后启动 worker。\n'
+printf '首次请先启动数据库并在 /setup 完成初始化；数据库暂不可用时安装入口仍可访问。\n'
 printf 'Ctrl+C 停止本次 API、前端与 worker；数据库保留运行。\n'
 
-worker_started=0
+migration_started=0
 while :; do
   for i in "${!PIDS[@]}"; do
     if ! kill -0 "${PIDS[$i]}" 2>/dev/null; then
       status=0
       wait "${PIDS[$i]}" || status=$?
+      if [[ ${NAMES[$i]} == migrate && $status == 0 ]]; then
+        unset 'PIDS[i]' 'NAMES[i]'
+        printf '数据库迁移完成，页面与主题功能已可用。\n'
+        start worker "$BINARY" worker
+        printf 'worker 已持续运行，负责媒体派生、定时发布及 outbox；修改存储设置后请重启本脚本。\n'
+        continue
+      fi
+      if [[ ${NAMES[$i]} == migrate ]]; then
+        die "数据库迁移失败（状态 $status）；检查 $LOG_DIR/migrate.log，已停止本次其它进程"
+      fi
       die "${NAMES[$i]} 意外退出（状态 $status）；检查 $LOG_DIR/${NAMES[$i]}.log，已停止本次其它进程"
     fi
   done
-  if ((worker_started == 0)) && curl --noproxy '*' --fail --silent --output /dev/null \
+  if ((migration_started == 0)) && curl --noproxy '*' --fail --silent --output /dev/null \
     --connect-timeout 1 --max-time 2 "$SLORAY_API_INTERNAL_URLS/readyz"; then
-    start worker "$BINARY" worker
-    worker_started=1
-    printf 'worker 已持续运行，负责媒体派生、定时发布及 outbox；修改存储设置后请重启本脚本。\n'
+    start migrate "$BINARY" migrate up
+    migration_started=1
   fi
   sleep 1
 done

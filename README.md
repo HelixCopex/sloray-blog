@@ -42,19 +42,20 @@ Postgres 保存权威业务记录，外部对象操作经 outbox。原图与公�
 数据与随机密码保存在被 Git 忽略的 `.dev-cache/postgres/`，重启保留，不改系统数据库。
 保存最后输出的连接串，稍后填入向导。`createdb` 只创建库，本身不会启动数据库服务。
 
-**2. 终端 A：启动 API**（首次编译可能较久）：
+**2. 一个终端启动全部开发服务**（首次安装与编译可能较久）：
 
 ```bash
-SLORAY_CONFIG_FILE="$PWD/.dev-cache/runtime/config.json" cargo run --locked --bin sloray -- serve
+./scripts/dev-start.sh
 ```
 
-**3. 终端 B：获取 token，再启动前端**：
+脚本按锁文件同步前端依赖，构建 Rust，启动 API / Astro；数据库就绪后自动执行
+待执行迁移，成功后启动媒体、定时发布和 outbox worker。已有开发库会补齐页面与主题表，
+重复启动保留已有数据。日志与配置路径会显示在终端。
+
+**3. 首次另开终端获取 token**：
 
 ```bash
-SLORAY_CONFIG_FILE="$PWD/.dev-cache/runtime/config.json" cargo run --locked --bin sloray -- setup-token
-cd web
-pnpm install --frozen-lockfile
-pnpm run dev
+SLORAY_CONFIG_FILE='<启动脚本显示的绝对配置路径>' cargo run --locked --bin sloray -- setup-token
 ```
 
 打开 **http://127.0.0.1:4321/setup**，填写 token、步骤 1 的连接串、管理员，以及站点地址
@@ -63,13 +64,8 @@ API 与 SSR 都保持运行。已有配置时直接打开首页和 `/login`。
 
 未配置时 healthz=200、readyz=503，setup 可访问。数据库暂不可达可通过 token
 恢复；损坏 JSON 需先修复文件。生产必须使用应用账户独占的共享目录。
-本地使用媒体或定时发布时，另开终端从根目录运行：
-
-```bash
-SLORAY_CONFIG_FILE="$PWD/.dev-cache/runtime/config.json" cargo run --locked --bin sloray -- worker
-```
-
-结束时在前端/API/worker 终端按 Ctrl+C，再运行 `./scripts/dev-db.sh stop`，数据保留。
+结束时在启动器终端按 Ctrl+C，再运行 `./scripts/dev-db.sh stop`，数据保留。
+需要分别启动 API / Astro / worker 时，见 [开发指南](docs/development.md#3-启动-api前端并初始化)。
 若 Astro 以后台方式启动，在 web 运行 `pnpm exec astro dev stop`。
 端口冲突、系统数据库替代方案、环境变量与两条常见错误见 [开发排错](docs/development.md#6-常见错误)。
 生产安装的 systemd timer 自动执行 worker --once。

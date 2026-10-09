@@ -92,15 +92,17 @@ Debian 的服务端命令可能不在 PATH；脚本会查找 `/usr/lib/postgresq
 推荐在第 2 节启动数据库后，用一个终端管理全部开发进程：
 
 ```bash
-cd web
-pnpm install --frozen-lockfile
-cd ..
 ./scripts/dev-start.sh
 ```
 
-脚本构建 Rust 二进制，启动独立 API 和 Astro，API 的 `/readyz` 成功后再启动持续
-运行的 worker。首次访问 `http://127.0.0.1:4321/setup` 完成下面的初始化；等待就绪
-期间前端和 API 保持可用。另开终端用脚本显示的**同一份配置路径**读取 setup token：
+脚本确认 Node ≥22.12，每次按锁文件同步前端依赖（`pnpm install --frozen-lockfile`），
+构建 Rust 二进制并启动独立 API 和 Astro。首次安装依赖需要可用的软件源，已缓存时复用缓存。
+API 的 `/readyz` 成功后，用同一配置执行 `sloray migrate up`，应用全部待执行迁移；
+迁移成功后再启动持续运行的 worker。已有开发库因此会自动补上页面与主题所需的表，
+重复启动不重建表或覆盖文章、页面与已启用的主题。
+
+首次访问 `http://127.0.0.1:4321/setup` 完成下面的初始化；未配置或数据库暂不可用时，
+前端和 API 保持可用，脚本等待数据库就绪。另开终端用脚本显示的**同一份配置路径**读取 setup token：
 
 ```bash
 SLORAY_CONFIG_FILE='<启动脚本显示的绝对配置路径>' cargo run --locked --bin sloray -- setup-token
@@ -113,13 +115,17 @@ SLORAY_CONFIG_FILE='<启动脚本显示的绝对配置路径>' cargo run --locke
 时的目录为准。API 和 worker 共用这个绝对路径，Rust 命令在仓库根目录运行，
 因此也共用根目录 `.env` 的覆盖规则。
 
-日志追加到 `.dev-cache/dev/{api,web,worker}.log`，新日志权限为 0600。
-Ctrl+C 停止本次启动的全部进程及子进程；服务意外退出也会停止其余进程并提示日志路径。
+日志追加到 `.dev-cache/dev/{api,web,migrate,worker}.log`，新日志权限为 0600。
+锁定依赖安装或 Rust 构建失败时不启动业务服务；迁移失败时不启动 worker，并停止本次 API/前端。
+Ctrl+C 停止本次启动的全部进程及子进程，包括正在执行的迁移；服务意外退出也会停止其余进程并提示日志路径。
 端口占用时拒绝启动，不终止旧开发终端；先停止之前手动启动的 API / Astro 再执行脚本。
 数据库由第 2 节单独管理，脚本退出不会停库。修改数据库、S3 或 CDN 设置后重启
 脚本，因为持续运行的 worker 在启动时读取配置。
 
 也可以按以下方式用三个独立终端启动。
+已有配置的环境更新代码后，先在根目录执行
+`SLORAY_CONFIG_FILE="$PWD/.dev-cache/runtime/config.json" cargo run --locked --bin sloray -- migrate up`，
+再启动 API / 前端 / worker；手动启动 `serve` 不自动迁移。
 
 **终端 A，仓库根目录**：
 
@@ -219,12 +225,14 @@ SLORAY_TEST_DATABASE_URL="$(./scripts/dev-db.sh url)" python3 scripts/smoke-brow
 ```
 
 test-dev-db 使用临时隔离集群并在结束停止，不修改当前开发库。
-test-dev-start 使用临时目录、模拟业务进程及真实 HTTP/进程组，验证共用配置、等待就绪、
-Ctrl+C / 进程失败清理、端口冲突和配置歧义；不连接开发数据库或对象存储。
+test-dev-start 使用临时目录、模拟业务进程及真实 HTTP/进程组，验证首次/已有依赖同步、
+共用配置、等待数据库/迁移、迁移失败与中断、无配置安装入口、Ctrl+C / 进程失败清理、
+端口冲突和配置歧义；不连接开发数据库或对象存储。
 smoke-dev 创建/删除独立测试库，检查真实 Astro dev 页面、Markdown、API/登录/设置代理，
 而不是仅检查端口或生产 build。测试用户须能创建数据库；项目开发角色已具备权限。
-smoke-dev-start 使用同样的隔离数据库及本地模拟对象存储，实际执行统一启动脚本，
-确认真实 Astro/API 代理、worker 自动生成 WebP 与停止后释放端口。
+smoke-dev-start 使用同样的隔离数据库及本地模拟对象存储，将一次性测试库降到四条迁移后，
+实际执行统一启动脚本，确认自动升级、保留文章、页面/主题 API 与 SSR、主题群岛、
+worker 自动生成 WebP、停止后释放端口及重复启动保留已启用的主题。
 另外的独立 SSR、浏览器、恢复测试与实际结果见 [verification.md](verification.md)。
 页面测试覆盖管理员权限、CSRF、版本、发布与撤回、导航、sitemap 和预览清洗；
 浏览器测试覆盖媒体选择器上传/复用/剪贴板、Markdown 预览和后台页面操作。使用说明见 [管理后台](admin.md)。
@@ -239,6 +247,8 @@ smoke-dev-start 使用同样的隔离数据库及本地模拟对象存储，实�
 | `password authentication failed` | 用错端口/集群或密码；重新取 dev-db.sh url，检查环境变量覆盖；不要重初始化已有数据目录 |
 | `address already in use` | 对应端口已被其它进程占用；检查现有服务，或按第 2/4 节更换端口，不终止未知进程 |
 | API 健康但 readyz=503 | 未初始化、数据库未启动或连接串不对；打开 /setup 或检查日志；healthz 只证明进程存活 |
+| 更新代码后页面/主题接口报缺表 | 旧开发终端未执行新增迁移；停止旧终端后重新运行 dev-start.sh，等待“数据库迁移完成”。手动启动时先用相同配置运行 migrate up |
+| 启动时显示数据库迁移失败 | 查看 .dev-cache/dev/migrate.log，修复数据库权限、连接或迁移错误后重启；脚本不会在失败后启动 worker |
 | 原图上传成功但一直未就绪，公开桶没有图片 | worker 未运行、用错配置或投递失败；使用 dev-start.sh 启动全部进程，检查 .dev-cache/dev/worker.log。修改存储设置后重启 worker |
 | `Failed to create the dev server app: require is not defined` | 旧配置将全量 noExternal 用于开发模式，导致 CommonJS 被当作 ESM 执行；当前修复只在 build 启用全量打包。停止旧 dev 进程，拉取修复，确认 Node ≥22.12，然后重新安装锁定依赖并启动 |
 | Astro 有端口但页面报错/无响应 | 查看 dev 终端或 astro dev logs；必须实际请求 /about 和 /setup，不能以启动提示代替验证 |
