@@ -18,7 +18,15 @@ pub async fn protect(State(state): State<AppState>, mut request: Request, next: 
         *request.method(),
         Method::GET | Method::HEAD | Method::OPTIONS
     );
-    if writing && ["/login", "/logout", "/admin/settings"].contains(&path.as_str()) {
+    if writing
+        && [
+            "/login",
+            "/logout",
+            "/admin/settings",
+            "/admin/settings/site",
+        ]
+        .contains(&path.as_str())
+    {
         let cookie = sloray_auth::read_cookie(request.headers(), super::session::CSRF_COOKIE);
         let (parts, body) = request.into_parts();
         let bytes = match to_bytes(body, 2_000_000).await {
@@ -90,7 +98,7 @@ pub async fn protect(State(state): State<AppState>, mut request: Request, next: 
     let secure = sloray_auth::cookie_is_secure(state.config().await.public_site_url.as_deref());
     let mut response = next.run(request).await;
     // 自渲染管理页所有 form 都插入相同 token，错误回显页也保留可重试能力。
-    if ["/login", "/admin/settings"].contains(&path.as_str())
+    if ["/login", "/admin/settings", "/admin/settings/site"].contains(&path.as_str())
         && response
             .headers()
             .get(header::CONTENT_TYPE)

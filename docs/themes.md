@@ -18,8 +18,8 @@
 ## 页面布局与 CSS
 
 颜色提供 violet / teal / blue / rose 四个 Material 配色，字体提供 sans / serif / mono 系统字体族。
-内容宽度 640–1600px，文章卡片 1–3 列或单列列表。侧边导航只在宽屏显示；移动端使用顶部导航。
-首页区块用逗号分隔：hero（引言）、posts（文章，必需）、pages（已发布独立页面目录）。
+内容宽度 640–1600px，文章卡片 1–3 列或单列列表。导航统一为桌面侧边栏与手机底部可展开 Dock；旧 navigation 选项兼容保留，均遵守该规则。
+首页区块用逗号分隔：hero（引言）、posts（文章，必需）、pages（已发布独立页面目录）、widgets（默认小组件域）。
 顺序可以调整，可移除引言或目录；区块不能重复。
 
 CSS 可使用 `.hero`、`.post-list`、`.post-card`、`.prose`、`header.site`、`footer.site`，
@@ -41,3 +41,39 @@ CSS 可使用 `.hero`、`.post-list`、`.post-card`、`.prose`、`header.site`�
 第六条 expand 迁移新增 themes 与 theme_settings，不修改旧表；现有部署先执行 `sloray migrate up`。
 主题与启用快照在 Postgres，备份包含全部记录，不在磁盘写入主题文件或修改 config.json。
 启用/恢复在同一事务内生成 CDN purge outbox，worker 消费；文章 HTML 的 ETag 包含最终主题样式。
+
+## 首页编排与独立刷新
+
+主题工作台的“首页编排”显示纵向区块，可上移、下移、移除引言，或添加组件域。
+文章列表必须保留且只能出现一次；最多一个引言、12 个区块，每个组件域最多 4 个小组件。
+便笺可写标题和纯文字，标签从当前公开数据读取，页面组件列出已发布页面，RSS 提供订阅入口。
+组件可向前调整顺序。没有组件的域自动移除。修改后先保存主题，再启用到全站。
+
+导出包的 layout.home_rows 为可选数组，结构如下；旧包不含该字段时继续按 home_blocks 排列。
+
+```json
+[
+  {"kind":"hero","title":"","widgets":[]},
+  {"kind":"widgets","title":"随手探索","widgets":[
+    {"kind":"note","title":"一则便笺","text":"留一点时间给阅读。"},
+    {"kind":"tags","title":"标签","text":""}
+  ]},
+  {"kind":"posts","title":"文字档案","widgets":[]}
+]
+```
+
+首次小组件加载采用 Astro server:defer；卡片右上角刷新只重新读取和渲染该卡片。
+正文与文章列表不等待组件，也不会随组件刷新重载。读取失败可单独重试。
+想恢复旧 home_blocks 布局，可以编辑“首页区块顺序”，该操作会清空新编排设置。
+
+## 站点名称、Favicon 与阅读偏好
+
+在 `/admin/settings` 的“站点标识”设置名称和 Favicon，使用独立保存按钮。
+名称同步到站点导航、浏览器标题和 RSS；名称链接返回首页，导航不再提供单独“首页”按钮。
+Favicon 填同源绝对路径或 HTTPS 图片地址，可从媒体库复制公开图片 URL；留空使用内置图标。
+设置保存到 Postgres，带版本冲突提示；更新不会改动数据库或对象存储部署配置。
+已有部署须先应用第七条迁移 `sloray migrate up`。
+
+手机 Dock 展开显示所有导航，Escape 或点击外部收起；深浅外观与字号偏好仅保存在读者浏览器。
+文章页提供字号、目录、阅读进度、专注阅读和代码复制；编辑器提供格式工具及实时字数，Ctrl/⌘+S 保存。
+所有动效尊重系统“减少动态效果”偏好。浏览器不支持 backdrop-filter 时使用实色表面。

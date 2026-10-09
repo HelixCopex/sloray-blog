@@ -6297,6 +6297,45 @@
           }
         }
       },
+      "HomeRow": {
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "widgets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HomeWidget"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "HomeWidget": {
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "Media": {
         "type": "object",
         "required": [
@@ -6883,12 +6922,40 @@
       },
       "Site": {
         "type": "object",
+        "required": [
+          "identity"
+        ],
         "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/SiteIdentity"
+          },
           "public_site_url": {
             "type": [
               "string",
               "null"
             ]
+          }
+        }
+      },
+      "SiteIdentity": {
+        "type": "object",
+        "required": [
+          "site_name",
+          "version"
+        ],
+        "properties": {
+          "favicon_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "site_name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -6991,6 +7058,13 @@
             "items": {
               "type": "string"
             }
+          },
+          "home_rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HomeRow"
+            },
+            "description": "为空时继续解释旧版 home_blocks，保持已发布主题兼容。"
           },
           "navigation": {
             "type": "string"

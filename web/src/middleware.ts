@@ -6,7 +6,11 @@ import { createHash } from 'node:crypto';
 // HTML 与 JSON 是不同表示，各自计算 ETag；模板或资源变更也必须使 HTML 失效。
 export const onRequest = defineMiddleware(async (context, next) => {
   if (!context.isPrerendered) {
-    try { context.locals.publicSiteUrl = (await serverGet<{ public_site_url: string | null }>('/site')).public_site_url ?? undefined; } catch { /* 未配置或暂不可达时使用构建地址。 */ }
+    try {
+      const site = await serverGet<components['schemas']['Site']>('/site');
+      context.locals.publicSiteUrl = site.public_site_url ?? undefined;
+      context.locals.siteIdentity = site.identity;
+    } catch { /* 未配置或暂不可达时使用构建地址。 */ }
   }
   context.locals.theme = defaultTheme;
   if (!context.isPrerendered && !context.url.pathname.startsWith('/admin/')) {

@@ -690,3 +690,64 @@ advisories ok, bans ok, licenses ok, sources ok
 `bash -n`、Python 编译检查与 `git diff --check` 退出 0。
 测试完成后删除临时测试库并停止专用测试集群；未访问现有开发或生产数据库。
 以上是本地验证，未推送，不能替代远程 CI。
+
+
+## 响应式 Dock、首页编排与站点标识（2026-10-10）
+
+本次新增第七条 expand 迁移，借用项目已有 PostgreSQL 18.6 服务，在 UUID 临时库上测试；
+没有对开发库执行迁移、清空或写入测试文章。启动阶段沙箱进程检查误判导致开发数据库服务停止，
+随后已恢复原服务，复用原数据目录。测试创建的数据库和 API/SSR/worker 进程均已清理。
+
+实际执行 `cargo fmt --all -- --check`、`cargo clippy --locked --workspace --all-targets -- -D warnings`、
+`cargo test --locked --workspace`，全部退出 0。Rust 各非空测试组为 9/10/9/4/11/7/11，合计 61 项。
+`pnpm --dir web run api:check`、`test`、`check`、`build` 全部退出 0。实际输出摘录：
+
+```text
+ℹ tests 9
+ℹ pass 9
+ℹ fail 0
+Result (61 files):
+- 0 errors
+- 0 warnings
+- 0 hints
+[build] Complete!
+```
+
+构建仍有五条既有上游 MDX/HAST MODULE_LEVEL_DIRECTIVE 提示。
+`./scripts/check-architecture.sh` 在线执行成功，实际输出：
+
+```text
+advisories ok, bans ok, licenses ok, sources ok
+  ✓ advisories / bans / licenses / sources 全部通过
+  ✓ crate 依赖方向 / workspace 版本引用 / unsafe 禁令通过
+结果：全部通过
+```
+
+`python3 scripts/check-api.py --validate` 和 `--base-ref HEAD`（相对本次开发前提交）均通过。
+部署切换与回滚脚本实际输出“结果：全部通过”。
+执行 smoke-migrations.py、smoke-backup.py、smoke-pages.py、smoke-themes.py、smoke-experience.py 和 smoke-dev-start.py，实际输出摘录：
+
+```text
+PASS 七条迁移 Applied；down all → up、down 1 → up、fresh，21 张表重建成功
+PASS 0600 逻辑备份、SHA-256 校验、空库完整恢复，21 张表内容与迁移记录逐表一致
+PASS 站点名称/Favicon 持久化、鉴权/CSRF、并发冲突、outbox、首页编排与 Astro 组件重载/文本转义
+PASS 自动升级四迁移旧库到七迁移/21 表、保留原有文章、页面与主题 API/SSR/群岛可用
+PASS 已升级开发库重复启动幂等，不重建页面、不覆盖已启用主题或文章
+```
+
+真实 Chromium `scripts/smoke-browser.py` 的实际输出：
+
+```text
+PASS Dock 展开/Escape、360/768/1440 布局/axe、减少动态效果、群岛独立刷新、字号持久化、专注阅读与目录
+PASS 浏览器局部导航、前进后退、评论提交、中文搜索、SEO 与公开页 axe 检查
+PASS 设置页站点名称/Favicon 保存、页面标题/导航/RSS 同步与恢复默认
+PASS 上传 HTTP/S3 错误与请求编号、网络/CORS 失败、API 失败阶段及诊断脱敏
+PASS Markdown 实时预览/分栏/清洗、未保存离开提示、移动布局、媒体复用与 Markdown 剪贴板及拒绝权限退路
+PASS 首页编排添加组件域、便笺/页面组件、保存启用、SSR 群岛加载及独立刷新
+PASS 主题群岛加载、CSS/布局预览、导入导出、启用快照、恢复删除、外观持久化及 360/768/1440px axe/布局审计
+PASS 后台创建页面、草稿/发布/改址/导航排序/撤回/删除、页面 axe 与退出后隐藏管理入口
+PASS HTML 登录、后台连续保存、跨域直传与封面展示、点赞、审核、删除媒体及管理页 axe 检查
+```
+
+审计覆盖 360/768/1440px、深浅模式、手机折叠及展开状态和减少动态效果。
+截图使用隔离测试站点内容。以上为本地验收，未执行远程 push CI 或生产发布。

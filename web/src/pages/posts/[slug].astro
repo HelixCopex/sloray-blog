@@ -5,6 +5,7 @@ import { renderMarkdown } from '../../lib/render-markdown';
 import type { components } from '../../lib/schema';
 let cover: components['schemas']['Media'] | undefined;
 import Discussion from '../../components/Discussion.astro';
+import ReadingTools from '../../components/islands/ReadingTools.astro';
 let post: Post | undefined;
 let content = '';
 try {
@@ -27,6 +28,7 @@ const jsonLd = post && JSON.stringify({ '@context': 'https://schema.org', '@type
     <h1>{post.title}</h1>
     <p class="meta">{post.author_name} · {post.published_at && <time datetime={post.published_at}>{new Date(post.published_at).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' })}</time>}</p>
     {cover?.ready && cover.variants.length > 0 && <img src={cover.variants.at(-1)!.url} srcset={cover.variants.map(v => `${v.url} ${v.width}w`).join(', ')} sizes="(max-width: 768px) 100vw, 768px" width={cover.width ?? undefined} height={cover.height ?? undefined} alt={`${post.title}封面`} class="cover" fetchpriority="high" />}
+    <ReadingTools minutes={Math.max(1, Math.ceil(post.body_md.length / 450))} />
     <div class="prose" set:html={content} />
     <ul class="tag-list">{post.tags.map(tag => <li><a href={`/tags/${encodeURIComponent(tag.slug)}`}>{tag.name}</a></li>)}</ul>
     <script type="application/ld+json" set:html={jsonLd} />

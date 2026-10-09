@@ -48,6 +48,7 @@ fn render_settings(
     user: &sloray_store::entity::users::Model,
     config: &sloray_config::Config,
     notice: Option<(&str, &str)>,
+    identity_form: &str,
 ) -> String {
     let notice_html = notice.map(|(k, m)| html::notice(k, m)).unwrap_or_default();
     let masked = config
@@ -62,7 +63,9 @@ fn render_settings(
         r#"{notice_html}
 <h1><svg class="icon" aria-hidden="true"><use href='#mi-settings'/></svg> 设置</h1>
 <p class="sub">已登录：{who}（{role}）</p>
-<nav class="settings-nav" aria-label="后台导航"><a href="/admin/posts">文章</a> · <a href="/admin/pages">页面</a> · <a href="/admin/media">媒体</a> · <a href="/admin/comments">评论</a> · <a href="/admin/themes">主题</a> · <a href="/admin/users">账号</a> · <a href="/admin/settings" aria-current="page">设置</a></nav>
+<details class="settings-dock" open><summary><svg class="icon" aria-hidden="true"><use href='#mi-menu'/></svg> 导航</summary><nav class="settings-nav" aria-label="后台导航">
+<a href="/admin/posts"><svg class="icon" aria-hidden="true"><use href='#mi-edit'/></svg>文章</a><a href="/admin/pages"><svg class="icon" aria-hidden="true"><use href='#mi-article'/></svg>页面</a><a href="/admin/media"><svg class="icon" aria-hidden="true"><use href='#mi-image'/></svg>媒体</a><a href="/admin/comments"><svg class="icon" aria-hidden="true"><use href='#mi-comment'/></svg>评论</a><a href="/admin/themes"><svg class="icon" aria-hidden="true"><use href='#mi-palette'/></svg>主题</a><a href="/admin/users"><svg class="icon" aria-hidden="true"><use href='#mi-person'/></svg>账号</a><a href="/admin/settings" aria-current="page"><svg class="icon" aria-hidden="true"><use href='#mi-settings'/></svg>设置</a></nav></details>
+{identity_form}
 
 <form method="post" action="/admin/settings">
   <fieldset>
@@ -137,12 +140,16 @@ pub async fn settings_form(State(state): State<AppState>, headers: HeaderMap) ->
         Err(resp) => return *resp,
     };
     let config = state.config().await;
+    let identity_form = super::identity::form(&state).await;
     let notice = if !config.is_configured() {
         Some(("warn", "实例还未完成配置，请先访问 /setup。"))
     } else {
         None
     };
-    html_response(render_settings(&user, &config, notice), StatusCode::OK)
+    html_response(
+        render_settings(&user, &config, notice, &identity_form),
+        StatusCode::OK,
+    )
 }
 
 /// `POST /admin/settings`
@@ -160,6 +167,7 @@ pub async fn settings_submit(
     };
 
     let mut config = state.config().await;
+    let identity_form = super::identity::form(&state).await;
 
     let mut replacement_db = state.db_optional().await;
 
@@ -168,7 +176,12 @@ pub async fn settings_submit(
     if !new_db.is_empty() {
         if !new_db.starts_with("postgres://") && !new_db.starts_with("postgresql://") {
             return html_response(
-                render_settings(&user, &config, Some(("err", "数据库连接串格式不正确。"))),
+                render_settings(
+                    &user,
+                    &config,
+                    Some(("err", "数据库连接串格式不正确。")),
+                    &identity_form,
+                ),
                 StatusCode::BAD_REQUEST,
             );
         }
@@ -177,7 +190,7 @@ pub async fn settings_submit(
             Err(msg) => {
                 // 关键：此时还**没有**改动任何已生效的配置。
                 return html_response(
-                    render_settings(&user, &config, Some(("err", &msg))),
+                    render_settings(&user, &config, Some(("err", &msg)), &identity_form),
                     StatusCode::BAD_REQUEST,
                 );
             }
@@ -189,6 +202,7 @@ pub async fn settings_submit(
                     &user,
                     &config,
                     Some(("err", "连接成功但迁移失败，配置未改动。")),
+                    &identity_form,
                 ),
                 StatusCode::BAD_REQUEST,
             );
@@ -245,6 +259,7 @@ pub async fn settings_submit(
                 &user,
                 &config,
                 Some(("err", &format!("配置校验失败：{err}"))),
+                &identity_form,
             ),
             StatusCode::BAD_REQUEST,
         );
@@ -257,14 +272,16 @@ pub async fn settings_submit(
                 &user,
                 &config,
                 Some(("err", "配置无法写入磁盘，请检查目录权限。")),
+                &identity_form,
             ),
             StatusCode::INTERNAL_SERVER_ERROR,
         );
     }
 
     tracing::info!(actor = %user.email, "设置已更新");
+    let identity_form = super::identity::form(&state).await;
     html_response(
-        render_settings(&user, &config, Some(("ok", "已保存。"))),
+        render_settings(&user, &config, Some(("ok", "已保存。")), &identity_form),
         StatusCode::OK,
     )
 }

@@ -54,6 +54,15 @@ test('CSS cannot terminate style elements and theme dimensions stay bounded', ()
   const p = structuredClone(defaultTheme); p.css = '</style><script>alert(1)</script>'; p.layout.width = Infinity; p.layout.columns = 100;
   const css = themeCss(p); assert.doesNotMatch(css, /</); assert.match(css, /--content-width:1600px/); assert.match(css, /--post-columns:3/);
 });
+test('composed home rows determine heading structure and escape widget text', () => {
+  const p = structuredClone(defaultTheme);
+  p.layout.home_rows = [{kind:'widgets',title:'探索',widgets:[{kind:'note',title:'便笺',text:'<script>bad()</script>'}]},{kind:'posts',title:'文章',widgets:[]}];
+  const html = previewHtml(p, 'body{}');
+  assert.equal((html.match(/<h1>/g) ?? []).length, 1);
+  assert.ok(html.indexOf('探索') < html.indexOf('<h1>文章'));
+  assert.match(html, /&lt;script&gt;/); assert.doesNotMatch(html, /<script>/);
+  assert.doesNotMatch(html, />首页</);
+});
 test('client API returns typed errors, sends CSRF with credentials and handles 204', async t => {
   const calls = []; const original = globalThis.fetch;
   t.after(() => { globalThis.fetch = original; });

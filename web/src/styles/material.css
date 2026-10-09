@@ -8,7 +8,7 @@
   --bg: var(--surface); --accent: var(--primary); --border: var(--outline-variant); --ok: var(--success); --err: var(--error); --warn: #805200;
   --content-width: 1120px; --reading-width: 760px; --post-columns: 2;
   --font: ui-sans-serif, system-ui, -apple-system, 'Noto Sans SC', sans-serif;
-  --radius: 20px;
+  --radius: 24px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-appearance="light"]) {
@@ -60,5 +60,13 @@ legend { padding: 0 .5rem; color: var(--fg-muted); }
 code { background: var(--surface-high); padding: .1em .35em; border-radius: 4px; font-size: .9em; }
 pre { background: var(--surface-container); border-radius: 12px; padding: 1rem; overflow: auto; }
 pre code { padding: 0; background: transparent; }
-@media (prefers-reduced-motion: no-preference) { button,a,input { transition: border-color 120ms; } }
+button,.button-link { position: relative; overflow: hidden; isolation: isolate; }
+@media (prefers-reduced-motion: no-preference) {
+  button,.button-link { transition: transform .25s cubic-bezier(.2,.8,.25,1.25), box-shadow .2s; }
+  button:active,.button-link:active { transform: scale(.96); }
+  button .icon,.button-link .icon { transition: transform .3s cubic-bezier(.2,.8,.25,1.25); }
+  button:hover .icon,.button-link:hover .icon { transform: translateY(-1px); }
+  .touch-ripple { position: absolute; pointer-events: none; border-radius: 50%; background: currentColor; opacity: 0; animation: touch-ripple .55s ease-out; }
+  @keyframes touch-ripple { from { opacity: .16; transform: scale(0); } to { opacity: 0; transform: scale(1); } }
+}
 @media (forced-colors: active) { .card,button,a,input { border-color: CanvasText; } }

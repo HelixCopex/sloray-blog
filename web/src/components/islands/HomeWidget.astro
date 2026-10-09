@@ -1,0 +1,26 @@
+---
+import { serverGet, type Tag } from '../../lib/api';
+import { allPublicPages } from '../../lib/pages';
+import { widgetLabels } from '../../lib/theme.mjs';
+import type { components } from '../../lib/schema';
+import Icon from '../ui/Icon.astro';
+interface Props { widget: components['schemas']['HomeWidget'] }
+const { widget } = Astro.props;
+let tags: Tag[] = [];
+let pages: Awaited<ReturnType<typeof allPublicPages>> = [];
+let failed = false;
+try {
+  if (widget.kind === 'tags') tags = (await serverGet<Tag[]>('/tags')).slice(0, 12);
+  if (widget.kind === 'pages') pages = await allPublicPages();
+} catch { failed = true; }
+const icon = { note: 'edit', tags: 'tag', pages: 'article', subscribe: 'rss' }[widget.kind] ?? 'article';
+---
+<div data-widget-loaded>
+  <div class="widget-heading"><span class="widget-icon"><Icon name={icon} /></span><h3>{widget.title || widgetLabels[widget.kind]}</h3></div>
+  {failed ? <p role="status">暂时无法读取，点击刷新重试。</p> : <>
+    {widget.kind === 'note' && <p class="widget-note">{widget.text || '写下一点想法，留给下次相遇。'}</p>}
+    {widget.kind === 'tags' && <>{tags.length ? <ul class="tag-list">{tags.map(tag => <li><a href={`/tags/${encodeURIComponent(tag.slug)}`}>{tag.name}</a></li>)}</ul> : <p class="muted">文章的标签会出现在这里。</p>}</>}
+    {widget.kind === 'pages' && <>{pages.length ? <ul class="page-directory">{pages.map(page => <li><a href={`/${encodeURIComponent(page.slug)}`}>{page.title}</a></li>)}</ul> : <p class="muted">还没有公开页面。</p>}</>}
+    {widget.kind === 'subscribe' && <><p>{widget.text || '用你喜欢的阅读器订阅，下一篇文章自然抵达。'}</p><a class="button-link tonal" href="/rss.xml" data-astro-reload><Icon name="rss" />订阅 RSS</a></>}
+  </>}
+</div>

@@ -62,6 +62,10 @@ pub fn build(state: AppState) -> Router {
         .route("/login", get(pages::login_form).post(pages::login_submit))
         .route("/logout", axum::routing::post(pages::logout))
         .route(
+            "/admin/settings/site",
+            axum::routing::post(pages::identity::submit),
+        )
+        .route(
             "/admin/settings",
             get(pages::settings_form).post(pages::settings_submit),
         )

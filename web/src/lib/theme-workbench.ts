@@ -3,6 +3,10 @@ import type { components } from './schema';
 import { defaultTheme, previewHtml } from './theme.mjs';
 import material from '../styles/material.css?raw';
 import global from '../styles/global.css?raw';
+import dock from '../styles/dock.css?raw';
+import home from '../styles/home.css?raw';
+import icons from '../assets/material-icons.svg?raw';
+import { homeComposer } from './home-composer';
 type Theme = components['schemas']['Theme'];
 type Package = components['schemas']['ThemePackage'];
 type State = components['schemas']['ThemeState'];
@@ -19,6 +23,7 @@ class ThemeWorkbench extends HTMLElement {
     const form = this.querySelector<HTMLFormElement>('[data-theme-form]')!;
     const status = this.querySelector<HTMLElement>('[data-theme-status]')!;
     const preview = this.querySelector<HTMLIFrameElement>('[data-theme-preview]')!;
+    const loadComposer = homeComposer(form);
     const field = (name: string) => form.elements.namedItem(name) as HTMLInputElement;
     const notify = (message: string) => { status.textContent = message; };
     const read = (): Package => ({ schema_version: 1, name: field('name').value, description: field('description').value,
@@ -26,10 +31,11 @@ class ThemeWorkbench extends HTMLElement {
       layout: { width: Number(field('width').value), columns: Number(field('columns').value),
         navigation: field('navigation').value, posts: field('posts').value,
         home_blocks: field('home_blocks').value.split(',').map(v => v.trim()).filter(Boolean),
-        hero_title: field('hero_title').value, hero_description: field('hero_description').value, footer: field('footer').value },
+        hero_title: field('hero_title').value, hero_description: field('hero_description').value, footer: field('footer').value,
+        ...(JSON.parse(field('home_rows').value || '[]').length ? { home_rows: JSON.parse(field('home_rows').value) } : {}) },
     });
     const updatePreview = () => {
-      preview.srcdoc = previewHtml(read(), `@layer material { ${material} }` + global.replace("@import './material.css' layer(material);", ''), this.querySelector<HTMLInputElement>('[data-preview-dark]')!.checked ? 'dark' : 'light');
+      preview.srcdoc = previewHtml(read(), `@layer material { ${material} }` + global.replace("@import './material.css' layer(material);", '') + dock + home, this.querySelector<HTMLInputElement>('[data-preview-dark]')!.checked ? 'dark' : 'light', icons);
     };
     const library = () => {
       this.querySelector('[data-active]')!.textContent = `已启用：${state.package.name}。修改主题库后需要重新启用。`;
@@ -47,8 +53,9 @@ class ThemeWorkbench extends HTMLElement {
     const load = (p: Package, theme?: Theme) => {
       selected = theme; dirty = false;
       for (const name of ['name','description','palette','font','css'] as const) field(name).value = p[name] ?? '';
-      for (const [name,value] of Object.entries(p.layout)) field(name).value = Array.isArray(value) ? value.join(', ') : String(value);
-      library(); updatePreview(); notify('');
+      for (const [name,value] of Object.entries(p.layout)) { if (name !== 'home_rows') field(name).value = Array.isArray(value) ? value.join(', ') : String(value); }
+      field('home_rows').value = JSON.stringify(p.layout.home_rows ?? []);
+      loadComposer(); library(); updatePreview(); notify('');
     };
     const lock = (value: boolean) => {
       busy = value; this.querySelectorAll<HTMLInputElement | HTMLButtonElement>('input,textarea,select,button').forEach(control => control.disabled = value); library();

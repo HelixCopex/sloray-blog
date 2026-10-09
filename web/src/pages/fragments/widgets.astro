@@ -1,0 +1,9 @@
+---
+import HomeWidget from '../../components/islands/HomeWidget.astro';
+import { homeRows, defaultTheme } from '../../lib/theme.mjs';
+const index = (key: string) => { const value = Astro.url.searchParams.get(key); return value && /^\d{1,2}$/.test(value) ? Number(value) : -1; };
+const widget = homeRows(Astro.locals.theme ?? defaultTheme)[index('row')]?.widgets?.[index('widget')];
+Astro.response.headers.set('Cache-Control', 'no-store');
+if (!widget) Astro.response.status = 404;
+---
+{widget ? <HomeWidget widget={widget} /> : <p>小组件配置已变化，请刷新首页。</p>}

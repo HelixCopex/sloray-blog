@@ -19,6 +19,7 @@ use sloray_setup::SetupMode;
 
 use crate::{html, state::AppState};
 
+pub mod identity;
 pub mod login;
 pub mod settings;
 pub mod setup;

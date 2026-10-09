@@ -504,6 +504,16 @@ export interface components {
             code: string;
             message: string;
         };
+        HomeRow: {
+            kind: string;
+            title?: string;
+            widgets?: components["schemas"]["HomeWidget"][];
+        };
+        HomeWidget: {
+            kind: string;
+            text?: string;
+            title?: string;
+        };
         Media: {
             /** Format: date-time */
             created_at: string;
@@ -671,7 +681,14 @@ export interface components {
             role: string;
         };
         Site: {
+            identity: components["schemas"]["SiteIdentity"];
             public_site_url?: string | null;
+        };
+        SiteIdentity: {
+            favicon_url?: string | null;
+            site_name: string;
+            /** Format: int32 */
+            version: number;
         };
         Stats: {
             /** Format: int64 */
@@ -702,6 +719,8 @@ export interface components {
             hero_description: string;
             hero_title: string;
             home_blocks: string[];
+            /** @description 为空时继续解释旧版 home_blocks，保持已发布主题兼容。 */
+            home_rows?: components["schemas"]["HomeRow"][];
             navigation: string;
             posts: string;
             /** Format: int32 */

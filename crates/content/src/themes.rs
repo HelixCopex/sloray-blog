@@ -27,11 +27,11 @@ pub fn validate(package: &ThemePackage) -> Result<()> {
         || !["top", "side"].contains(&layout.navigation.as_str())
         || !["cards", "list"].contains(&layout.posts.as_str())
         || blocks.is_empty()
-        || blocks.len() > 3
+        || blocks.len() > 4
         || !blocks.iter().any(|b| b == "posts")
         || blocks
             .iter()
-            .any(|b| !["hero", "posts", "pages"].contains(&b.as_str()))
+            .any(|b| !["hero", "posts", "pages", "widgets"].contains(&b.as_str()))
         || blocks
             .iter()
             .enumerate()
@@ -42,6 +42,34 @@ pub fn validate(package: &ThemePackage) -> Result<()> {
     {
         return Err(Error::Validation(
             "主题包版本、颜色、字体、布局或长度不合法".into(),
+        ));
+    }
+    validate_rows(&layout.home_rows)?;
+    Ok(())
+}
+
+fn validate_rows(rows: &[HomeRow]) -> Result<()> {
+    if rows.is_empty() {
+        return Ok(());
+    }
+    if rows.len() > 12
+        || rows.iter().filter(|r| r.kind == "posts").count() != 1
+        || rows.iter().filter(|r| r.kind == "hero").count() > 1
+        || rows.iter().any(|r| {
+            !["hero", "posts", "widgets"].contains(&r.kind.as_str())
+                || r.title.chars().count() > 100
+                || r.widgets.len() > 4
+                || (r.kind != "widgets" && !r.widgets.is_empty())
+                || (r.kind == "widgets" && r.widgets.is_empty())
+                || r.widgets.iter().any(|w| {
+                    !["note", "pages", "tags", "subscribe"].contains(&w.kind.as_str())
+                        || w.title.chars().count() > 100
+                        || w.text.chars().count() > 1000
+                })
+        })
+    {
+        return Err(Error::Validation(
+            "首页须含一个文章区块，最多 12 行；组件域须含 1–4 个受支持的小组件".into(),
         ));
     }
     Ok(())
@@ -240,6 +268,32 @@ mod tests {
         let mut json = serde_json::to_value(ThemePackage::default()).unwrap();
         json["javascript"] = "alert(1)".into();
         assert!(serde_json::from_value::<ThemePackage>(json).is_err());
+    }
+    #[test]
+    fn home_rows_require_one_post_list_and_bounded_passive_widgets() {
+        let mut package = ThemePackage::default();
+        package.layout.home_rows = vec![
+            HomeRow {
+                kind: "posts".into(),
+                title: String::new(),
+                widgets: vec![],
+            },
+            HomeRow {
+                kind: "widgets".into(),
+                title: "探索".into(),
+                widgets: vec![HomeWidget {
+                    kind: "note".into(),
+                    title: "便笺".into(),
+                    text: "纯文字".into(),
+                }],
+            },
+        ];
+        assert!(validate(&package).is_ok());
+        package.layout.home_rows[1].widgets[0].kind = "script".into();
+        assert!(validate(&package).is_err());
+        package.layout.home_rows[1].widgets[0].kind = "tags".into();
+        package.layout.home_rows[0].kind = "hero".into();
+        assert!(validate(&package).is_err());
     }
     #[test]
     fn author_cannot_manage_themes() {

@@ -29,6 +29,28 @@ pub struct ThemeLayout {
     pub hero_title: String,
     pub hero_description: String,
     pub footer: String,
+    /// 为空时继续解释旧版 home_blocks，保持已发布主题兼容。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub home_rows: Vec<HomeRow>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub struct HomeRow {
+    pub kind: String,
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub widgets: Vec<HomeWidget>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub struct HomeWidget {
+    pub kind: String,
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub text: String,
 }
 
 impl Default for ThemePackage {
@@ -37,17 +59,18 @@ impl Default for ThemePackage {
             schema_version: 1,
             name: "静线 · Material".into(),
             description: "默认 Material 3 主题".into(),
-            palette: "violet".into(),
+            palette: "blue".into(),
             font: "sans".into(),
             layout: ThemeLayout {
                 width: 1120,
-                navigation: "top".into(),
-                posts: "cards".into(),
-                columns: 2,
-                home_blocks: vec!["hero".into(), "posts".into()],
+                navigation: "side".into(),
+                posts: "list".into(),
+                columns: 1,
+                home_blocks: vec!["hero".into(), "widgets".into(), "posts".into()],
                 hero_title: "记录当下，连接想法。".into(),
                 hero_description: "写作、分享，以及值得留下的讨论。".into(),
                 footer: "记录、分享与讨论".into(),
+                home_rows: vec![],
             },
             css: String::new(),
         }

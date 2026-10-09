@@ -12,6 +12,7 @@ mod query;
 pub mod revisions;
 pub mod search;
 pub mod search_index;
+pub mod site;
 pub mod stats;
 pub mod theme_dto;
 pub mod themes;

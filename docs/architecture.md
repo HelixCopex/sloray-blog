@@ -58,13 +58,14 @@ Rust 网络依赖统一走 rustls；不用 OpenSSL/native-tls，也没有 git �
 
 原始 12 张业务表不改历史迁移；新增 expand 迁移增加
 `privacy_secrets`、`request_limits`、`search_settings`、`media_uploads`，
-另以 expand 迁移增加独立 `pages` 表，再以第六条 expand 迁移增加主题库与启用快照，合计 19 张业务表，加 `seaql_migrations` 为 20 张表。
+另以 expand 迁移增加独立 `pages` 表，再以第六条 expand 迁移增加主题库与启用快照，另以第七条 expand 迁移增加站点标识，合计 20 张业务表，加 `seaql_migrations` 为 21 张表。
 
 | 数据 | 实现 |
 |---|---|
 | users / sessions | 邮箱小写、admin/author 角色；Argon2id；会话 token 仅存哈希并可撤销 |
 | posts / post_revisions | UUIDv7；版本条件更新；每次编辑与修订在同一事务；删除为软删除 |
 | themes / theme_settings | 管理员主题库与独立发布快照、乐观版本、恢复默认和 outbox purge（ADR-0020） |
+| site_identity | 站点名称/Favicon、独立内容设置、乐观版本与 outbox purge（ADR-0021） |
 | pages | 管理员维护独立页面；草稿/发布、导航显示与排序、版本条件更新和软删除 |
 | tags / post_tags | 稳定 slug、文章标签关联；不使用第二个权威索引 |
 | comments | 默认 pending；审核后公开；父评论同文章且祖先已通过，最大 5 层 |
@@ -194,3 +195,5 @@ CI 使用 PostgreSQL 18 与匹配版本客户端，另有隔离 PITR job；
 不能由本地通过推断。原生扩展兼容性依赖宿主，应用分词是可用的无扩展退路。
 
 主题包、原生交互组件与服务端群岛的边界见 [ADR-0020](adr/0020-data-themes-and-astro-islands.md) 和 [主题手册](themes.md)。
+
+响应式 Dock、首页线性区块与可刷新组件域见 [ADR-0021](adr/0021-responsive-dock-and-home-composition.md)。

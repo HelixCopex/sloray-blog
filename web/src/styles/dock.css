@@ -1,0 +1,57 @@
+@layer layout {
+  :root { --glass: color-mix(in srgb, var(--surface-container) 82%, transparent); --glow: color-mix(in srgb, var(--primary) 18%, transparent); --ease-spring: cubic-bezier(.2,.8,.25,1.25); }
+  body { background-image: radial-gradient(ellipse at 80% 0%, var(--glow), transparent 48%), radial-gradient(ellipse at 0% 70%, color-mix(in srgb, var(--primary) 6%, transparent), transparent 60%); background-attachment: fixed; }
+  header.site { position: relative; border: 0; padding: 1rem 1.25rem; }
+  .brand { white-space: normal; overflow-wrap: anywhere; font-size: 1rem; line-height: 1.45; }
+  .brand-mark { display: grid; place-items: center; flex: 0 0 48px; height: 48px; border-radius: 18px; background: var(--primary-container); }
+  .site-dock { display: block; z-index: 30; }
+  .dock-panel { border: 1px solid var(--outline-variant); background: var(--surface-container); border-radius: 28px; padding: .6rem; box-shadow: 0 8px 32px rgb(0 0 0 / .12), 0 0 36px var(--glow); }
+  @supports (backdrop-filter: blur(20px)) { .dock-panel { background: var(--glass); backdrop-filter: blur(24px) saturate(1.3); } }
+  header.site .site-dock nav { display: flex; gap: .3rem; flex: none; order: 0; }
+  header.site .site-dock nav a { position: relative; min-width: 0; flex: 1; flex-direction: column; justify-content: center; gap: .2rem; padding: .6rem .4rem; border-radius: 20px; font-size: .75rem; text-align: center; }
+  .dock-symbol { display: grid; place-items: center; width: 48px; min-height: 32px; border-radius: 16px; }
+  .dock-label { overflow-wrap: anywhere; line-height: 1.4; }
+  .site-dock nav a[aria-current="page"] .dock-symbol { background: var(--primary-container); }
+  .site-dock:not([data-ready]) .dock-tools { display: none; }
+  .dock-tools { display: flex; justify-content: space-evenly; gap: .25rem; }
+  .dock-tool { flex-direction: column; font-size: .7rem; line-height: 1.3; gap: .3rem; padding: .55rem; min-width: 52px; border-radius: 18px; color: var(--fg-muted); }
+  .appearance { display: block; margin: 0; }
+  .dock-tool[aria-expanded="true"] .icon { rotate: 180deg; }
+  @media (min-width: 1000px) {
+    body[data-navigation] { padding-left: 216px; }
+    body[data-navigation] header.site { position: fixed; inset: 16px auto 16px 16px; width: 184px; padding: 0; border: 0; overflow: visible; flex-direction: column; align-items: stretch; gap: 1.5rem; }
+    .site-dock { min-height: 0; flex: 1; }
+    .dock-panel { max-height: calc(100dvh - 140px); overflow: auto; scrollbar-width: thin; }
+    header.site .site-dock nav { flex-direction: column; }
+    header.site .site-dock nav a { flex-direction: row; justify-content: start; text-align: left; gap: .3rem; padding: .65rem .35rem; font-size: .875rem; flex: none; }
+    .dock-symbol { flex: 0 0 40px; }
+    .dock-tools { border-top: 1px solid var(--border); margin-top: .6rem; padding-top: .6rem; }
+    .dock-toggle { display: none; }
+  }
+  @media (max-width: 999px) {
+    .site-dock { position: fixed; bottom: calc(.75rem + env(safe-area-inset-bottom)); left: 50%; translate: -50% 0; width: min(440px, calc(100% - 1.5rem)); }
+    .dock-panel { max-height: min(65dvh, 480px); overflow: auto; }
+    .site-dock[data-ready][data-expanded="false"] .dock-panel { display: flex; align-items: center; gap: .25rem; }
+    header.site .site-dock[data-ready][data-expanded="false"] nav { flex: 1; }
+    .site-dock[data-ready][data-expanded="false"] .dock-tools { border-top: 0; border-left: 1px solid var(--border); margin: 0; padding: 0 0 0 .25rem; gap: 0; }
+    .site-dock[data-expanded="false"] .dock-label { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .site-dock[data-expanded="true"] nav { flex-wrap: wrap; }
+    .site-dock[data-expanded="true"] nav a { flex: 1 1 28%; }
+    .dock-tools { border-top: 1px solid var(--border); margin-top: .2rem; padding-top: .2rem; }
+    footer.site { padding-bottom: calc(12rem + env(safe-area-inset-bottom)); }
+    main { scroll-margin-bottom: 12rem; }
+    :root { scroll-padding-bottom: 12rem; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .site-dock nav a,.dock-tool { transition: box-shadow .3s, transform .35s var(--ease-spring); }
+    .site-dock nav a:hover,.dock-tool:hover { transform: translateY(-3px); box-shadow: 0 0 22px var(--glow); }
+    .site-dock .icon { transition: transform .4s var(--ease-spring), rotate .4s var(--ease-spring); }
+    .site-dock a:hover .icon,.site-dock button:hover .icon { transform: scale(1.18); }
+    button:hover [data-icon="settings"] { rotate: 90deg; }
+    button:hover [data-icon="dark"],button:hover [data-icon="system"] { rotate: -18deg; }
+    button:hover [data-icon="light"] { rotate: 60deg; }
+    .site-dock[data-expanded="true"] nav { animation: dock-reveal .35s var(--ease-spring); }
+    @keyframes dock-reveal { from { transform: translateY(8px); } to { transform: translateY(0); } }
+  }
+  @media (forced-colors: active) { .dock-panel { background: Canvas; border-color: CanvasText; box-shadow: none; } }
+}

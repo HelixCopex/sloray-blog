@@ -60,7 +60,7 @@ export async function testThemes(page, context, origin, audit) {
   await page.emulateMedia({colorScheme:'dark'}); await audit(); await page.emulateMedia({colorScheme:'light'});
   await page.screenshot({path:'/tmp/sloray-public-desktop.png',fullPage:true});
   await page.goto(origin + '/admin/themes'); await page.locator('theme-workbench[data-bound="true"]').waitFor();
-  check(await page.locator('body').getAttribute('data-navigation') === 'top', 'custom theme affected admin recovery');
+  check(await page.locator('body').getAttribute('data-navigation') === 'side', 'admin navigation missing');
   await page.locator('#theme-hero-title').fill('主题快照修改');
   await page.getByRole('button',{name:'保存主题',exact:true}).click(); await page.getByText('主题已保存。点击启用可发布到全站。',{exact:true}).waitFor();
   check((await (await context.request.get(origin)).text()).includes('主题自定义首页'), 'active snapshot changed on save');
@@ -79,5 +79,28 @@ export async function testThemes(page, context, origin, audit) {
   check(await page.locator('html').getAttribute('data-appearance') === 'dark', 'appearance preference lost on reload');
   await audit();
   await page.getByRole('button',{name:'外观：深色，点击切换',exact:true}).click();
+  await page.locator('#theme-name').fill('首页编排测试');
+  await page.getByRole('button',{name:'添加小组件域',exact:true}).click();
+  const row = page.locator('.composer-row').last();
+  await row.getByLabel('区块标题（可选）',{exact:true}).fill('我的组件域');
+  await row.getByLabel('小组件标题',{exact:true}).fill('给读者的便笺');
+  await row.getByLabel('文字内容',{exact:true}).fill('静静阅读，慢慢书写。');
+  await row.getByRole('button',{name:'添加小组件',exact:true}).click();
+  await row.getByLabel('小组件类型').last().selectOption('pages');
+  await page.getByRole('button',{name:'保存主题',exact:true}).click();
+  await page.getByText('主题已保存。点击启用可发布到全站。',{exact:true}).waitFor();
+  await page.getByRole('button',{name:'启用主题',exact:true}).click();
+  await page.getByText('主题已启用。公开页面刷新后生效。',{exact:true}).waitFor();
+  await page.goto(origin);
+  await page.getByRole('region',{name:'我的组件域'}).getByText('静静阅读，慢慢书写。',{exact:true}).waitFor();
+  await audit();
+  const widget = page.getByRole('region',{name:'我的组件域'}).locator('widget-card').first();
+  await widget.getByRole('button').click(); await widget.getByText('已更新',{exact:true}).waitFor();
+  await page.goto(origin + '/admin/themes'); await page.locator('theme-workbench[data-bound="true"]').waitFor();
+  await page.getByRole('button',{name:'恢复默认',exact:true}).click();
+  await page.getByText('已恢复默认主题，主题库仍保留。',{exact:true}).waitFor();
+  page.once('dialog', dialog => dialog.accept()); await page.getByRole('button',{name:'删除主题',exact:true}).click();
+  await page.getByText('主题已删除。',{exact:true}).waitFor();
+  console.log('PASS 首页编排添加组件域、便笺/页面组件、保存启用、SSR 群岛加载及独立刷新');
   console.log('PASS 主题群岛加载、CSS/布局预览、导入导出、启用快照、恢复删除、外观持久化及 360/768/1440px axe/布局审计');
 }

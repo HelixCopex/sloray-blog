@@ -261,3 +261,6 @@ CLI 管理见 [Astro 官方说明](https://docs.astro.build/en/reference/cli-ref
 前端业务单元回归：`cd web && pnpm run test`（Markdown 清洗/标题、媒体 Markdown、诊断脱敏、API/CSRF/重试、主题预览）。
 真实数据库主题验证：`SLORAY_TEST_DATABASE_URL=... python3 scripts/smoke-themes.py`。
 浏览器验证会审计公开页、后台与主题工作台在移动、平板和桌面宽度的布局和 WCAG AA。
+
+Dock、站点标识与首页编排的隔离验收：`SLORAY_TEST_DATABASE_URL=... python3 scripts/smoke-experience.py`。
+完整手机/桌面交互和无障碍审计继续使用 `scripts/smoke-browser.py`，生成深色桌面、手机折叠和展开截图。

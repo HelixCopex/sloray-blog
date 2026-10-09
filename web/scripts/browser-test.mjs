@@ -1,6 +1,7 @@
 import { chromium } from 'playwright';
 import fs from 'node:fs';
 import { testThemes } from './theme-browser.mjs';
+import { testExperience, testIdentity } from './experience-browser.mjs';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const axeSource = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
@@ -30,6 +31,7 @@ try {
   await audit();
   await page.emulateMedia({colorScheme:'dark'}); await audit();
   await page.emulateMedia({colorScheme:'light'});
+  await testExperience(page, origin, audit);
   await page.evaluate(() => { window.__navigationProof = 'persistent'; });
   await page.getByRole('link', { name:'浏览器测试文章', exact:true }).click();
   await page.locator('.discussion[data-bound=true]').waitFor();
@@ -62,6 +64,7 @@ try {
   check(await page.getByRole('link', {name:'管理后台',exact:true}).count() === 1, 'logged-in admin entry missing');
   await page.goto(origin + '/admin/settings');
   await audit();
+  await testIdentity(page, context, origin, audit);
   await page.goto(origin + '/admin/posts');
   await page.getByRole('link', {name:'新建文章',exact:true}).click();
   await page.locator('#editor[data-bound=true]').waitFor();
@@ -190,7 +193,7 @@ try {
   await page.goto(origin + '/browser-page');
   await page.getByText('通过后台创建', {exact:true}).waitFor();
   await audit();
-  check(await page.locator('nav[aria-label="站点导航"] a').nth(2).getAttribute('href') === '/browser-page', 'page nav order ignored');
+  check(await page.locator('nav[aria-label="站点导航"] a').nth(1).getAttribute('href') === '/browser-page', 'page nav order ignored');
   check((await context.request.get(origin + '/sitemap.xml')).ok(), 'page sitemap failed');
   await page.goto(editorUrl);
   await page.locator('#editor[data-bound=true]').waitFor();

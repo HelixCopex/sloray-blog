@@ -30,7 +30,7 @@ with objects_module.Objects() as objects, App() as app:
     config |= {'s3':{'endpoint':objects.url,'bucket':'test','region':'auto','access_key_id':'test-key','secret_access_key':'test-secret'},'media_public_bucket':'test-public','media_public_base_url':objects.url+'/test-public'}
     (app.root/'config.json').write_text(json.dumps(config))
     time.sleep(2.2)
-    assert app.json('/api/v1/admin/posts','POST',{'slug':'browser-seed','title':'浏览器测试文章','body_md':'中文浏览器导航测试','status':'published'})[0]==201
+    assert app.json('/api/v1/admin/posts','POST',{'slug':'browser-seed','title':'浏览器测试文章','body_md':'# 中文浏览器导航测试\n\n文字留在这里。\n\n```js\nconst reading = true;\n```','status':'published'})[0]==201
     app.start_web()
     class Proxy(http.server.BaseHTTPRequestHandler):
         def log_message(self, *_args): pass

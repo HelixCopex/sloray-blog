@@ -1,10 +1,14 @@
 ---
 import PostCard from '../components/PostCard.astro';
 import PageDirectory from '../components/PageDirectory.astro';
-import { defaultTheme } from '../lib/theme.mjs';
+import WidgetRegion from '../components/islands/WidgetRegion.astro';
+import Icon from '../components/ui/Icon.astro';
+import { defaultTheme, homeRows } from '../lib/theme.mjs';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { serverGet, type PostPage } from '../lib/api';
 const theme = Astro.locals.theme ?? defaultTheme;
+const rows = homeRows(theme);
+const hasHero = rows.some(row => row.kind === 'hero');
 const cursor = Astro.url.searchParams.get('cursor');
 let page: PostPage = { items: [], next_cursor: null };
 let unavailable = false;
@@ -13,10 +17,17 @@ catch { unavailable = true; }
 Astro.response.headers.set('Cache-Control', 'no-store');
 ---
 <BaseLayout title="静线数据库">
-  {theme.layout.home_blocks.map(block => block === 'hero' ? <section class="hero"><p class="eyebrow">静线数据库</p><h1>{theme.layout.hero_title || '文章'}</h1><p>{theme.layout.hero_description}</p></section> : block === 'pages' ? <PageDirectory server:defer><p slot="fallback" class="muted">正在读取页面…</p></PageDirectory> : <section aria-label="文章列表">
-    {theme.layout.home_blocks.includes('hero') ? <h2>文章</h2> : <h1>文章</h1>}
-    {unavailable ? <p role="status">文章服务暂时不可达，请稍后重试。</p> : page.items.length === 0 && <p>还没有已发布的文章。</p>}
-    <ul class="post-list">{page.items.map(post => <li><PostCard post={post} /></li>)}</ul>
-    {page.next_cursor && <a class="button-link tonal" href={`/?cursor=${encodeURIComponent(page.next_cursor)}`}>下一页</a>}
-  </section>)}
+  <ol class="home-stream" role="list">
+    {rows.map((row, index) => <li class="home-row">
+      {row.kind === 'hero' ? <section class="hero"><p class="eyebrow"><Icon name="reading" />{Astro.locals.siteIdentity?.site_name ?? '静线数据库'} · 文字的栖息地</p><h1>{row.title || theme.layout.hero_title || '文章'}</h1><p>{theme.layout.hero_description}</p><a class="button-link tonal" href="#posts"><Icon name="up" class="read-arrow" />开始阅读</a></section>
+        : row.kind === 'widgets' ? <WidgetRegion row={row} index={index} />
+        : row.kind === 'pages' ? <PageDirectory server:defer><p slot="fallback" class="muted">正在读取页面…</p></PageDirectory>
+        : <section id="posts" aria-label="文章列表">
+          <div class="stream-heading">{hasHero ? <h2>{row.title || '文章'}</h2> : <h1>{row.title || '文章'}</h1>}<span class="meta">按时间，慢慢读</span></div>
+          {unavailable ? <p role="status">文章服务暂时不可达，请稍后重试。</p> : page.items.length === 0 && <div class="empty-state"><Icon name="edit" /><p>这里留给下一篇值得记录的故事。</p><p class="hint">还没有已发布的文章。</p></div>}
+          <ul class="post-list">{page.items.map(post => <li><PostCard post={post} /></li>)}</ul>
+          {page.next_cursor && <a class="button-link tonal" href={`/?cursor=${encodeURIComponent(page.next_cursor)}#posts`}>下一页</a>}
+        </section>}
+    </li>)}
+  </ol>
 </BaseLayout>

@@ -12,6 +12,9 @@ const content = await renderMarkdown(value);
     <button type="button" data-view="split" aria-pressed="true"><Icon name="article" />分栏</button>
     <span class="hint" data-preview-notice role="status" aria-live="polite"></span>
   </div>
+  <div class="editor-toolbar writing-toolbar" aria-label="Markdown 格式">
+    <button type="button" class="text" data-format="bold">粗体</button><button type="button" class="text" data-format="italic">斜体</button><button type="button" class="text" data-format="link">链接</button><button type="button" class="text" data-format="list">列表</button><button type="button" class="text" data-format="code">代码</button><span class="hint" data-word-count></span>
+  </div>
   <div class="editor-columns" data-editor-columns data-view="split">
     <div data-edit-panel><label for="body">正文（Markdown）</label><textarea id="body" name="body_md" rows="22">{value}</textarea></div>
     <section data-preview-panel aria-label="Markdown 预览"><h2 class="preview-label">正文预览</h2><div class="prose" data-markdown-preview set:html={content} /></section>
@@ -27,6 +30,17 @@ const content = await renderMarkdown(value);
     const body = editor.querySelector<HTMLTextAreaElement>('#body')!;
     const preview = editor.querySelector<HTMLElement>('[data-markdown-preview]')!;
     const notice = editor.querySelector<HTMLElement>('[data-preview-notice]')!;
+    const count = editor.querySelector<HTMLElement>('[data-word-count]')!;
+    const updateCount = () => { count.textContent = `${body.value.replace(/\s/g, '').length} 字 · Ctrl / ⌘ + S 保存`; };
+    updateCount(); body.addEventListener('input', updateCount);
+    editor.querySelectorAll<HTMLButtonElement>('[data-format]').forEach(button => button.addEventListener('click', () => {
+      const selection = body.value.slice(body.selectionStart, body.selectionEnd);
+      const [before, after, placeholder] = ({ bold: ['**','**','粗体文字'], italic: ['*','*','斜体文字'], link: ['[','](https://)','链接文字'], list: ['\n- ','','列表项目'], code: ['`','`','代码'] } as Record<string, string[]>)[button.dataset.format!];
+      const start = body.selectionStart; const text = selection || placeholder;
+      body.setRangeText(before + text + after, body.selectionStart, body.selectionEnd, 'end');
+      body.focus(); body.setSelectionRange(start + before.length, start + before.length + text.length);
+      body.dispatchEvent(new Event('input', { bubbles: true }));
+    }));
     let timer: ReturnType<typeof setTimeout>;
     let pending: AbortController | undefined;
     let sequence = 0;

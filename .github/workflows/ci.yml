@@ -154,6 +154,7 @@ jobs:
           python3 scripts/smoke-content.py
           python3 scripts/smoke-pages.py
           python3 scripts/smoke-themes.py
+          python3 scripts/smoke-experience.py
           python3 scripts/smoke-activity.py
           python3 scripts/smoke-search.py
           python3 scripts/smoke-media.py

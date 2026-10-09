@@ -19,8 +19,23 @@ fn administrator(actor: Actor) -> Result<()> {
 fn validate(input: &WritePage) -> Result<()> {
     // 独立页面位于根路径；预留应用路由和静态资源前缀，避免发布后无法访问。
     let reserved = [
-        "admin", "api", "posts", "tags", "search", "login", "logout", "setup", "healthz", "readyz",
-        "_astro", "404", "rss", "sitemap",
+        "admin",
+        "api",
+        "posts",
+        "tags",
+        "search",
+        "login",
+        "logout",
+        "setup",
+        "healthz",
+        "readyz",
+        "_astro",
+        "_server-islands",
+        "fragments",
+        "404",
+        "rss",
+        "sitemap",
+        "favicon.svg",
     ];
     if !crate::posts::valid_slug(&input.slug)
         || reserved
