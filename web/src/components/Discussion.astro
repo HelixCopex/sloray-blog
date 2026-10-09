@@ -1,0 +1,79 @@
+---
+import { serverGet } from '../lib/api';
+import type { components } from '../lib/schema';
+type CommentPage = components['schemas']['CommentPage'];
+const { id, slug } = Astro.props;
+let comments: CommentPage | undefined;
+try {
+  const cursor = Astro.url.searchParams.get('comments');
+  comments = await serverGet<CommentPage>(`/posts/${encodeURIComponent(slug)}/comments${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`);
+} catch { /* 正文仍可读，评论区单独显示不可用。 */ }
+---
+<section class="discussion" data-post-id={id} data-post-slug={slug} aria-label="读者讨论">
+  <p><span data-stats>正在读取浏览数和点赞数…</span> <button type="button" data-like aria-pressed="false">点赞</button></p>
+  <h2>评论</h2>
+  {comments ? <ul>{comments.items.map(comment => <li id={`comment-${comment.id}`}>
+    <p><strong>{comment.author_name}</strong> · <time datetime={comment.created_at}>{new Date(comment.created_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}</time>{comment.parent_id && <> · 回复评论</>}</p>
+    <p class="comment-body">{comment.body_md}</p>
+    <button type="button" data-reply={comment.id}>回复 {comment.author_name}</button>
+  </li>)}</ul> : <p>评论暂时不可用。</p>}
+  {comments?.next_cursor && <a href={`?comments=${encodeURIComponent(comments.next_cursor)}`}>更早的评论</a>}
+  <form data-comment>
+    <label for="guest-name">昵称</label><input id="guest-name" name="guest_name" required maxlength="80" autocomplete="nickname" />
+    <label for="comment-body">评论（提交后由作者审核）</label><textarea id="comment-body" name="body_md" required maxlength="4000" rows="4" />
+    <input name="parent_id" type="hidden" /><p data-reply-notice></p><button type="button" data-cancel-reply hidden>取消回复</button>
+    <div class="honeypot" aria-hidden="true"><label for="comment-website">Website</label><input id="comment-website" name="website" tabindex="-1" autocomplete="off" /></div>
+    <button type="submit">提交评论</button>
+  </form>
+  <p data-notice role="status" aria-live="polite"></p>
+</section>
+<script>
+  import { clientGet, clientWrite, ApiRequestError } from '../lib/api';
+  import type { components } from '../lib/schema';
+  type Stats = components['schemas']['Stats'];
+  function bind() {
+    const section = document.querySelector<HTMLElement>('.discussion');
+    if (!section || section.dataset.bound) return;
+    section.dataset.bound = 'true';
+    const id = section.dataset.postId!;
+    const slug = section.dataset.postSlug!;
+    const notice = section.querySelector<HTMLElement>('[data-notice]')!;
+    const button = section.querySelector<HTMLButtonElement>('[data-like]')!;
+    let liked = false;
+    async function refresh() {
+      const stats = await clientGet<Stats>(`/posts/${id}/stats`);
+      section!.querySelector('[data-stats]')!.textContent = `${stats.view_count} 次浏览 · ${stats.like_count} 人点赞`;
+      liked = stats.liked;
+      button.textContent = liked ? '取消点赞' : '点赞';
+      button.setAttribute('aria-pressed', String(liked));
+    }
+    void clientWrite(`/posts/${id}/view`, 'POST', {}).then(refresh).catch(() => { section.querySelector('[data-stats]')!.textContent = '统计暂时不可用'; });
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      try { await clientWrite(`/posts/${id}/like`, liked ? 'DELETE' : 'PUT', {}); await refresh(); }
+      catch (error) { notice.textContent = error instanceof ApiRequestError && error.status === 401 ? '请登录后点赞。' : String(error); }
+      finally { button.disabled = false; }
+    });
+    const form = section.querySelector<HTMLFormElement>('[data-comment]')!;
+    const parent = form.elements.namedItem('parent_id') as HTMLInputElement;
+    const replyNotice = section.querySelector<HTMLElement>('[data-reply-notice]')!;
+    const cancel = section.querySelector<HTMLButtonElement>('[data-cancel-reply]')!;
+    section.querySelectorAll<HTMLButtonElement>('[data-reply]').forEach(reply => reply.addEventListener('click', () => {
+      parent.value = reply.dataset.reply!; replyNotice.textContent = reply.textContent; cancel.hidden = false;
+      (form.elements.namedItem('body_md') as HTMLTextAreaElement).focus();
+    }));
+    cancel.addEventListener('click', () => { parent.value = ''; replyNotice.textContent = ''; cancel.hidden = true; });
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const submit = form.querySelector<HTMLButtonElement>('button[type=submit]')!;
+      submit.disabled = true;
+      const data = new FormData(form);
+      try {
+        await clientWrite(`/posts/${encodeURIComponent(slug)}/comments`, 'POST', { guest_name: data.get('guest_name'), body_md: data.get('body_md'), parent_id: data.get('parent_id') || null, website: data.get('website') });
+        form.reset(); cancel.click(); notice.textContent = '评论已提交，审核通过后显示。';
+      } catch (error) { notice.textContent = String(error); }
+      finally { submit.disabled = false; }
+    });
+  }
+  document.addEventListener('astro:page-load', bind);
+</script>

@@ -1,0 +1,20 @@
+---
+const links = [
+  { href: '/', label: '首页' },
+  { href: '/search', label: '搜索' },
+  { href: '/about', label: '关于' },
+  { href: '/admin/posts', label: '写作' },
+];
+
+const current = Astro.url.pathname;
+---
+
+<nav>
+  {
+    links.map(({ href, label }) => (
+      <a href={href} data-astro-prefetch={href.startsWith('/admin/') ? 'false' : undefined} aria-current={current === href ? 'page' : undefined}>
+        {label}
+      </a>
+    ))
+  }
+</nav>

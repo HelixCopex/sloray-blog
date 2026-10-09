@@ -1,0 +1,23 @@
+[package]
+name = "sloray-config"
+description = "配置：分层加载、校验与原子落盘"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+name = "sloray_config"
+path = "src/lib.rs"
+
+[dependencies]
+url.workspace = true
+anyhow.workspace = true
+figment.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+
+[lints]
+workspace = true

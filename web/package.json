@@ -1,0 +1,32 @@
+{
+  "name": "sloray-web",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "start": "node ./dist/server/entry.mjs",
+    "api:generate": "openapi-typescript ../docs/api/openapi.json --output src/lib/schema.ts",
+    "api:check": "openapi-typescript ../docs/api/openapi.json --output src/lib/schema.ts --check"
+  },
+  "dependencies": {
+    "@astrojs/markdown-remark": "^7.3.2",
+    "@astrojs/node": "^11.1.6",
+    "astro": "^7.3.5",
+    "rehype-sanitize": "^6.0.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@types/node": "^26.6.4",
+    "axe-core": "4.11.1",
+    "openapi-typescript": "^7.13.0",
+    "playwright": "1.62.1",
+    "typescript": "5.9.3"
+  }
+}

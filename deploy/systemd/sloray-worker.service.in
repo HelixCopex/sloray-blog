@@ -1,0 +1,27 @@
+[Unit]
+Description=sloray background tasks
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=@SLORAY_SHARED@/config.json
+
+[Service]
+Type=oneshot
+User=sloray
+Group=sloray
+WorkingDirectory=@SLORAY_SHARED@
+EnvironmentFile=-/etc/sloray/api.env
+Environment=SLORAY_CONFIG_FILE=@SLORAY_SHARED@/config.json
+ExecStart=@SLORAY_BIN@ worker --once
+TimeoutStartSec=15min
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+LockPersonality=true

@@ -1,0 +1,51 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import Nav from '../components/Nav.astro';
+import NavStatus from '../components/NavStatus.astro';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = '静线数据库 —— Rust + Astro 的动态博客' } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.locals.publicSiteUrl ?? Astro.site ?? Astro.url.origin);
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical.href} />
+
+    <!--
+      局部导航（也就是通常说的 pjax / AJAX 换页）由 Astro 内置的 ClientRouter 提供。
+
+      为什么不用手写 pjax 或第三方 pjax 库：
+      history 状态、滚动位置、焦点恢复、<head> 同步、换页后脚本重新执行，
+      这些它都已经处理好了；自研版本几乎必然在"监听器重复绑定"和
+      "岛屿组件状态丢失"上翻车。而且第三方 pjax 与它会争抢 history，不能共存。
+    -->
+    <ClientRouter />
+  </head>
+
+  <body>
+    <header class="site">
+      <span class="brand">静线数据库</span>
+      <Nav />
+      <NavStatus />
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="site">
+      记录、分享与讨论
+    </footer>
+  </body>
+</html>

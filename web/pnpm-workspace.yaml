@@ -1,0 +1,9 @@
+# pnpm 12 默认阻止依赖的 install 脚本，必须在 allowBuilds 里显式允许。
+#
+# 不配置这项时，`pnpm install` 会因为 esbuild 的脚本被忽略而**以非零码退出**，
+# CI 里的 `pnpm install --frozen-lockfile` 会直接失败。
+#
+# esbuild 的平台二进制实际来自 optionalDependencies，
+# 这个脚本只做校验/兜底；显式允许它才是可复现的做法。
+allowBuilds:
+  esbuild: true

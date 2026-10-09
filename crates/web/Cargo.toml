@@ -1,0 +1,43 @@
+[package]
+name = "sloray-web"
+description = "HTTP 层：路由、HTML 渲染、服务启动与日志"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+name = "sloray_web"
+path = "src/lib.rs"
+
+[dependencies]
+url.workspace = true
+hex.workspace = true
+sloray-config.workspace = true
+sloray-store.workspace = true
+sloray-auth.workspace = true
+sloray-content.workspace = true
+sloray-media.workspace = true
+utoipa.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+sloray-setup.workspace = true
+axum.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+sea-orm.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+# 集成测试要读响应体
+http-body-util.workspace = true
+
+[lints]
+workspace = true

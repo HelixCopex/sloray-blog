@@ -1,0 +1,82 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import MediaUpload from '../../../components/MediaUpload.astro';
+import { serverGet, ApiRequestError, type Session, type Post, type RevisionPage } from '../../../lib/api';
+Astro.response.headers.set('Cache-Control', 'no-store');
+const id = Astro.params.id ?? 'new';
+const cookie = Astro.request.headers.get('cookie') ?? '';
+let post: Post | undefined;
+let revisions: RevisionPage | undefined;
+let failed = false;
+let admin = false;
+try {
+  const session = await serverGet<Session>('/auth/session', { headers: { cookie } });
+  if (!session.user) return Astro.redirect('/login');
+  admin = session.user.role === 'admin';
+  if (id !== 'new') {
+    post = await serverGet<Post>(`/admin/posts/${encodeURIComponent(id)}`, { headers: { cookie } });
+    revisions = await serverGet<RevisionPage>(`/admin/posts/${encodeURIComponent(id)}/revisions${Astro.url.searchParams.get('revisions') ? `?cursor=${encodeURIComponent(Astro.url.searchParams.get('revisions')!)}` : ''}`, { headers: { cookie } });
+  }
+} catch (error) {
+  failed = true;
+  Astro.response.status = error instanceof ApiRequestError ? error.status : 503;
+}
+const localDate = post?.published_at ? new Date(new Date(post.published_at).getTime() + 8 * 3600 * 1000).toISOString().slice(0, 16) : '';
+---
+<BaseLayout title={post ? `编辑：${post.title}` : '新建文章'}>
+  <h1>{post ? '编辑文章' : '新建文章'}</h1>
+  {failed ? <p role="alert">文章不可访问或服务暂时不可用。</p> : <>
+    <form id="editor" data-id={id} data-version={post?.version ?? ''}>
+      <label for="title">标题</label><input id="title" name="title" required maxlength="200" value={post?.title} />
+      <label for="slug">文章地址</label><input id="slug" name="slug" required maxlength="160" value={post?.slug} />
+      <label for="summary">摘要</label><textarea id="summary" name="summary" maxlength="1000">{post?.summary}</textarea>
+      <label for="body">正文（Markdown）</label><textarea id="body" name="body_md" rows="20" required>{post?.body_md}</textarea>
+      <label for="tags">标签（逗号分隔）</label><input id="tags" name="tags" value={post?.tags.map(t => t.slug).join(', ') ?? ''} />
+      <label for="status">状态</label><select id="status" name="status"><option value="draft" selected={!post || post.status === 'draft'}>草稿</option><option value="published" selected={post?.status === 'published'}>发布</option><option value="scheduled" selected={post?.status === 'scheduled'}>定时发布</option></select>
+      <label for="published">发布时间（北京时间）</label><input id="published" name="published_at" type="datetime-local" value={localDate} />
+      <p class="hint">定时发布必须填写未来时间；立即发布可以留空。</p>
+      <label for="cover-media">封面图片 ID（可留空）</label><input id="cover-media" name="cover_media_id" value={post?.cover_media_id ?? ''} />
+      <button type="submit">保存</button>
+      {post && <button id="delete-post" type="button">删除文章</button>}
+      <p id="editor-notice" role="status" aria-live="polite"></p>
+    </form>
+    {admin && <MediaUpload />}
+    <details><summary>修订历史</summary><ul>{revisions?.items.map(revision => <li><time datetime={revision.created_at}>{new Date(revision.created_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}</time> · {revision.title}<pre>{revision.body_md}</pre></li>)}</ul>{revisions?.next_cursor && <a href={`?revisions=${encodeURIComponent(revisions.next_cursor)}`}>更早的修订</a>}</details>
+  </>}
+</BaseLayout>
+<script>
+  import { clientWrite, ApiRequestError, type Post, type WritePost } from '../../../lib/api';
+  function bindEditor() {
+    const form = document.querySelector<HTMLFormElement>('#editor');
+    if (!form || form.dataset.bound) return;
+    form.dataset.bound = 'true';
+    const notice = document.querySelector<HTMLElement>('#editor-notice')!;
+    const value = (data: FormData, name: string) => String(data.get(name) ?? '').trim();
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+      if (button.disabled) return;
+      button.disabled = true;
+      notice.textContent = '正在保存…';
+      try {
+        const data = new FormData(form);
+        const date = value(data, 'published_at');
+        const body: WritePost = { slug: value(data, 'slug'), title: value(data, 'title'), summary: value(data, 'summary'), body_md: String(data.get('body_md') ?? ''), status: value(data, 'status'), published_at: date ? new Date(`${date}:00+08:00`).toISOString() : null, cover_media_id: value(data, 'cover_media_id') || null, lang: 'zh', tags: value(data, 'tags').split(',').map(s => s.trim()).filter(Boolean), version: form.dataset.version ? Number(form.dataset.version) : null };
+        const id = form.dataset.id;
+        const result = await clientWrite<Post>(id === 'new' ? '/admin/posts' : `/admin/posts/${id}`, id === 'new' ? 'POST' : 'PUT', body);
+        form.dataset.id = result.id;
+        form.dataset.version = String(result.version);
+        notice.textContent = `已保存（版本 ${result.version}）。`;
+        if (id === 'new') window.location.assign(`/admin/posts/${result.id}`);
+      } catch (error) {
+        notice.textContent = error instanceof ApiRequestError && error.status === 409 ? '文章已经被其他作者修改，请复制当前内容后重新打开文章。' : error instanceof Error ? error.message : '保存失败，请重试。';
+      } finally { button.disabled = false; }
+    });
+    document.querySelector<HTMLButtonElement>('#delete-post')?.addEventListener('click', async () => {
+      if (!window.confirm('删除这篇文章？')) return;
+      try { await clientWrite<void>(`/admin/posts/${form.dataset.id}`, 'DELETE', { version: Number(form.dataset.version) }); window.location.assign('/admin/posts'); }
+      catch (error) { notice.textContent = error instanceof Error ? error.message : '删除失败'; }
+    });
+  }
+  document.addEventListener('astro:page-load', bindEditor);
+</script>

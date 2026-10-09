@@ -1,0 +1,23 @@
+[package]
+name = "sloray-content"
+description = "内容业务：文章、标签、修订、评论、搜索与计数"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+sloray-store.workspace = true
+sea-orm.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+thiserror.workspace = true
+utoipa.workspace = true
+hex.workspace = true
+jieba-rs.workspace = true
+
+[lints]
+workspace = true

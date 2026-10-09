@@ -1,0 +1,94 @@
+# cargo-deny 配置：依赖许可证、安全公告、来源与禁用列表。
+#
+#   cargo deny check              # 全部检查
+#   cargo deny check licenses     # 只看许可证
+#
+# CI 里会跑（见 .github/workflows/ci.yml 的 governance job）。
+# 改这个文件等于改项目的合规边界，请在 PR 里说明理由。
+
+[advisories]
+# 已知漏洞/未维护/被 yank 的依赖一律视为阻断项。
+# 需要临时豁免时**必须写 reason**，并在 PR 描述里说明何时移除。
+ignore = [
+    # { id = "RUSTSEC-0000-0000", reason = "等待上游修复，跟踪 issue #123" },
+]
+
+[licenses]
+# 包括开发与构建依赖，统一检查完整 workspace 依赖链。
+include-dev = true
+include-build = true
+# 允许的许可证白名单。
+#
+# 本项目以 MIT 分发，所以只接受宽松许可 + 弱 copyleft（LGPL）。
+# **明确不接受** GPL / AGPL / SSPL：它们会让分发条款复杂化，
+# 而这只是一个博客，没有为此付出代价的理由。
+allow = [
+    "MIT",
+    "MIT-0",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "0BSD",
+    "Unlicense",
+    "CC0-1.0",
+    # Unicode 数据文件（icu/url 依赖树）自带 Unicode-3.0
+    "Unicode-3.0",
+    # Mozilla 的根证书数据
+    "CDLA-Permissive-2.0",
+    # Boost 软件许可
+    "BSL-1.0",
+    # 弱 copyleft：允许。注意这是**动态链接**场景（Rust 静态链接时
+    # LGPL 的义务会变重，引入前请单独确认）。
+    "LGPL-2.1-only",
+    "LGPL-2.1-or-later",
+    "LGPL-3.0-only",
+    "LGPL-3.0-or-later",
+]
+# 从许可证文本推断时的置信度下限。0.9 比默认更严：
+# 宁可让人工确认一次，也不要放过一个识别不准的许可。
+confidence-threshold = 0.9
+
+# 上面的 allow 是**政策声明**（我们愿意接受哪些许可），不是当前用量的清单。
+# 所以"某个许可暂时没被任何依赖用到"不应该告警 ——
+# 例如 LGPL 是刻意留在列表里的（见 AGENTS.md 4.2）。
+unused-allowed-license = "allow"
+
+[licenses.private]
+# 私有 workspace 成员也检查；publish = false 不是跳过许可声明的理由。
+ignore = false
+
+[bans]
+# 同一 crate 出现多个版本时告警（不是错误）：
+# 升级依赖时能看见重复，但不阻断构建。
+#
+# 当前已知且**可接受**的重复（都是 RustCrypto 新旧两代并存）：
+#   syn 2.x/3.x、sha2 0.10/0.11、digest 0.10/0.11、crypto-common 0.1/0.2、
+#   block-buffer 0.10/0.12、getrandom 0.2/0.4、hashbrown、heck、windows-sys
+# 来源：sqlx 走旧版 RustCrypto，而 argon2 0.6 / sha2 0.11 走新版。
+# 等 sqlx 升级后会自然收敛，不需要手工干预。
+multiple-versions = "warn"
+# 版本约束写成 `*` 会让构建不可复现，一律拒绝。
+wildcards = "deny"
+# 明确禁止的 crate。每加一条都要写清理由。
+deny = [
+    # 我们用 rustls，不依赖系统 OpenSSL：
+    # 少一个 C 依赖意味着交叉编译与容器镜像都简单得多。
+    { crate = "openssl",    reason = "本项目统一使用 rustls，见 Cargo.toml 的 runtime-tokio-rustls" },
+    { crate = "openssl-sys", reason = "同上：避免引入系统 OpenSSL 与 pkg-config 依赖" },
+    { crate = "native-tls",  reason = "同上：统一走 rustls" },
+]
+# 允许某个 crate 的多版本共存（留空 = 不豁免）。
+skip = []
+# 允许使用 `*` 版本约束的 crate（留空 = 不豁免）。
+skip-tree = []
+
+[sources]
+# 依赖只能来自 crates.io 官方索引，不能来自任意 registry 或 git：
+# 这是供应链安全的基本要求（否则一次 PR 就能把代码指向别人的服务器）。
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

@@ -1,0 +1,30 @@
+[package]
+name = "sloray-auth"
+description = "鉴权：argon2id 密码哈希、会话与 Cookie"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+name = "sloray_auth"
+path = "src/lib.rs"
+
+[dependencies]
+sloray-store.workspace = true
+sea-orm.workspace = true
+axum.workspace = true
+argon2.workspace = true
+sha2.workspace = true
+subtle.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tokio.workspace = true
+serde.workspace = true
+utoipa.workspace = true
+
+[lints]
+workspace = true

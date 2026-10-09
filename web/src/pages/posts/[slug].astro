@@ -1,0 +1,38 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { serverGet, ApiRequestError, type Post } from '../../lib/api';
+import { createMarkdownProcessor } from '@astrojs/markdown-remark';
+import { articleHeadings } from '../../lib/markdown';
+import rehypeSanitize from 'rehype-sanitize';
+import type { components } from '../../lib/schema';
+let cover: components['schemas']['Media'] | undefined;
+import Discussion from '../../components/Discussion.astro';
+let post: Post | undefined;
+let content = '';
+try {
+  post = await serverGet<Post>(`/posts/${encodeURIComponent(Astro.params.slug ?? '')}`);
+  const processor = await createMarkdownProcessor({ rehypePlugins: [rehypeSanitize, articleHeadings] });
+  content = (await processor.render(post.body_md)).code;
+  Astro.response.headers.set('Cache-Control', 'public, no-cache');
+} catch (error) {
+  post = undefined;
+  Astro.response.status = error instanceof ApiRequestError && error.status === 404 ? 404 : 503;
+  Astro.response.headers.set('Cache-Control', 'no-store');
+}
+if (post?.cover_media_id) {
+  try { cover = await serverGet<components['schemas']['Media']>(`/media/${post.cover_media_id}`); } catch { /* 删除或处理失败的图片不阻止正文阅读。 */ }
+}
+const articleUrl = new URL(Astro.url.pathname, Astro.locals.publicSiteUrl ?? Astro.site ?? Astro.url.origin).href;
+const jsonLd = post && JSON.stringify({ '@context': 'https://schema.org', '@type': 'BlogPosting', headline: post.title, description: post.summary, datePublished: post.published_at, dateModified: post.updated_at, author: { '@type': 'Person', name: post.author_name }, image: cover?.variants.at(-1)?.url, url: articleUrl }).replace(/</g, '\\u003c');
+---
+<BaseLayout title={post ? `${post.title} · 静线数据库` : '文章不可用'} description={post?.summary}>
+  {post ? <article>
+    <h1>{post.title}</h1>
+    <p class="meta">{post.author_name} · {post.published_at && <time datetime={post.published_at}>{new Date(post.published_at).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' })}</time>}</p>
+    {cover?.ready && cover.variants.length > 0 && <img src={cover.variants.at(-1)!.url} srcset={cover.variants.map(v => `${v.url} ${v.width}w`).join(', ')} sizes="(max-width: 768px) 100vw, 768px" width={cover.width ?? undefined} height={cover.height ?? undefined} alt={`${post.title}封面`} class="cover" fetchpriority="high" />}
+    <div class="prose" set:html={content} />
+    <ul class="tag-list">{post.tags.map(tag => <li><a href={`/tags/${encodeURIComponent(tag.slug)}`}>{tag.name}</a></li>)}</ul>
+    <script type="application/ld+json" set:html={jsonLd} />
+    <Discussion id={post.id} slug={post.slug} />
+  </article> : <><h1>{Astro.response.status === 404 ? '文章不存在' : '文章暂时不可用'}</h1><p><a href="/">返回首页</a></p></>}
+</BaseLayout>

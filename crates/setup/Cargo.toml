@@ -1,0 +1,27 @@
+[package]
+name = "sloray-setup"
+description = "初次配置：一次性 token、数据库探测、迁移与 systemd 单元"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+name = "sloray_setup"
+path = "src/lib.rs"
+
+[dependencies]
+sloray-config.workspace = true
+sloray-auth.workspace = true
+sloray-migration.workspace = true
+sea-orm.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+# 测试里有 #[tokio::test]（mode() 是 async 的）
+tokio.workspace = true
+
+[lints]
+workspace = true

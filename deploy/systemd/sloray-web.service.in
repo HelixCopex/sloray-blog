@@ -1,0 +1,56 @@
+# sloray-web（Astro SSR, @astrojs/node standalone）的 systemd 模板单元。
+#
+# ⚠️ 模板（`.in`）：@WEB_ENTRY@ 需要在安装时替换成真实的 entry.mjs 路径。
+#
+# 安装：
+#   sloray systemd install            # cargo install 场景
+#   activate-release.sh               # 版本目录场景
+
+[Unit]
+Description=sloray-blog Web (Astro SSR)
+After=network-online.target
+Wants=network-online.target
+# API 先起，Astro 才有东西可渲染；但 API 晚起也不会让 Web 挂掉
+# （页面上的可降级区块会显示"不可达"），所以这里同样不用 Requires。
+After=sloray@8080.service
+
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=exec
+User=sloray
+Group=sloray
+WorkingDirectory=@WEB_WORKDIR@
+
+EnvironmentFile=-/etc/sloray/web.env
+# Astro 只监听回环，公网流量一律经 Nginx。
+Environment=HOST=127.0.0.1
+Environment=PORT=4321
+# 注意：SLORAY_API_INTERNAL_URL **不能**在这里设置 ——
+# Astro/Vite 会在构建期把它内联进产物，运行时设置无效。
+
+ExecStart=/usr/bin/node @WEB_ENTRY@
+
+Restart=on-failure
+RestartSec=2s
+
+KillSignal=SIGTERM
+TimeoutStopSec=20
+
+# ---- 加固 ----
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

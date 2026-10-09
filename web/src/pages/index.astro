@@ -1,0 +1,24 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { serverGet, type PostPage } from '../lib/api';
+const cursor = Astro.url.searchParams.get('cursor');
+let page: PostPage = { items: [], next_cursor: null };
+let unavailable = false;
+try { page = await serverGet<PostPage>(`/posts?limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`); }
+catch { unavailable = true; }
+Astro.response.headers.set('Cache-Control', 'no-store');
+---
+<BaseLayout title="静线数据库">
+  <h1>文章</h1>
+  {unavailable ? <p role="status">文章服务暂时不可达，请稍后重试。</p> : page.items.length === 0 && <p>还没有已发布的文章。</p>}
+  <ul class="post-list">
+    {page.items.map(post => <li>
+      <article>
+        <h2><a href={`/posts/${encodeURIComponent(post.slug)}`}>{post.title}</a></h2>
+        <p>{post.summary}</p>
+        <p class="meta">{post.author_name} · {post.published_at && <time datetime={post.published_at}>{new Date(post.published_at).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' })}</time>}</p>
+      </article>
+    </li>)}
+  </ul>
+  {page.next_cursor && <a href={`/?cursor=${encodeURIComponent(page.next_cursor)}`}>下一页</a>}
+</BaseLayout>

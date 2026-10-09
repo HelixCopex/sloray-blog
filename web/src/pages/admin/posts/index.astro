@@ -1,0 +1,20 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { serverGet, type Session, type PostPage } from '../../../lib/api';
+Astro.response.headers.set('Cache-Control', 'no-store');
+const cookie = Astro.request.headers.get('cookie') ?? '';
+let page: PostPage | undefined;
+let failed = false;
+try {
+  const session = await serverGet<Session>('/auth/session', { headers: { cookie } });
+  if (!session.user) return Astro.redirect('/login');
+  const cursor = Astro.url.searchParams.get('cursor');
+  page = await serverGet<PostPage>(`/admin/posts${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`,  { headers: { cookie } });
+} catch { failed = true; Astro.response.status = 503; }
+---
+<BaseLayout title="后台写作">
+  <h1>后台写作</h1>
+  <p><a href="/admin/posts/new" data-astro-prefetch="false">新建文章</a> · <a href="/admin/comments" data-astro-prefetch="false">评论审核</a> · <a href="/admin/media" data-astro-prefetch="false">媒体管理</a> · <a href="/admin/users" data-astro-prefetch="false">作者管理</a> · <a href="/admin/settings" data-astro-reload data-astro-prefetch="false">设置</a></p>
+  {failed ? <p role="alert">服务暂时不可用，请稍后重试。</p> : <ul>{page?.items.map(post => <li><a href={`/admin/posts/${post.id}`} data-astro-prefetch="false">{post.title}</a> · {post.status} · 版本 {post.version}</li>)}</ul>}
+  {page?.next_cursor && <a href={`?cursor=${encodeURIComponent(page.next_cursor)}`}>下一页</a>}
+</BaseLayout>

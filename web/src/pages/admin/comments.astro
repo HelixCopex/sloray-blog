@@ -1,0 +1,40 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { serverGet, type Session } from '../../lib/api';
+import type { components } from '../../lib/schema';
+type CommentPage = components['schemas']['CommentPage'];
+Astro.response.headers.set('Cache-Control', 'no-store');
+const cookie = Astro.request.headers.get('cookie') ?? '';
+const status = Astro.url.searchParams.get('status') ?? 'pending';
+const cursor = Astro.url.searchParams.get('cursor');
+let comments: CommentPage | undefined;
+try {
+  const session = await serverGet<Session>('/auth/session', { headers: { cookie } });
+  if (!session.user) return Astro.redirect('/login');
+  comments = await serverGet<CommentPage>(`/admin/comments?status=${encodeURIComponent(status)}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`, { headers: { cookie } });
+} catch { Astro.response.status = 503; }
+---
+<BaseLayout title="评论审核">
+  <h1>评论审核</h1><p><a href="/admin/posts" data-astro-prefetch="false">返回写作</a></p>
+  <nav aria-label="评论状态"><a href="?status=pending">待审核</a> · <a href="?status=approved">已通过</a> · <a href="?status=spam">垃圾评论</a></nav>
+  <p role="status" data-moderation-notice></p>
+  {comments ? <ul data-moderation>{comments.items.map(comment => <li data-id={comment.id}>
+    <p><strong>{comment.author_name}</strong> · {comment.status}</p><p class="comment-body">{comment.body_md}</p>
+    <button data-status="approved">通过</button> <button data-status="spam">标记垃圾</button> <button data-status="pending">移回待审核</button>
+  </li>)}</ul> : <p role="alert">评论暂时不可用。</p>}
+  {comments?.next_cursor && <a href={`?status=${encodeURIComponent(status)}&cursor=${encodeURIComponent(comments.next_cursor)}`}>下一页</a>}
+</BaseLayout>
+<script>
+  import { clientWrite } from '../../lib/api';
+  document.addEventListener('astro:page-load', () => {
+    const list = document.querySelector<HTMLElement>('[data-moderation]');
+    if (!list || list.dataset.bound) return;
+    list.dataset.bound = 'true';
+    list.querySelectorAll<HTMLButtonElement>('button[data-status]').forEach(button => button.addEventListener('click', async () => {
+      button.disabled = true;
+      const item = button.closest<HTMLElement>('li')!;
+      try { await clientWrite(`/admin/comments/${item.dataset.id}`, 'PUT', { status: button.dataset.status }); item.remove(); }
+      catch (error) { document.querySelector('[data-moderation-notice]')!.textContent = String(error); button.disabled = false; }
+    }));
+  });
+</script>

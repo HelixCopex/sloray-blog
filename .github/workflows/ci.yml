@@ -1,0 +1,263 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  ASTRO_TELEMETRY_DISABLED: 1
+
+jobs:
+  rust:
+    name: Rust（fmt / clippy / test）
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: 格式检查
+        run: cargo fmt --all -- --check
+
+      - name: Clippy（警告即失败）
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
+
+      - name: 单元测试与集成测试
+        run: cargo test --locked --workspace
+
+      - name: OpenAPI 生成文件一致性
+        run: |
+          cargo run --locked --bin sloray -- openapi > "$RUNNER_TEMP/openapi.json"
+          cmp docs/api/openapi.json "$RUNNER_TEMP/openapi.json"
+          python3 scripts/check-api.py --validate
+          python3 scripts/test-api-contract.py
+
+      - name: OpenAPI 向后兼容性
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.sha }}
+        run: python3 scripts/check-api.py --base-ref "$BASE_REF"
+
+  migrations:
+    name: 迁移（真实 Postgres 上 up / down / up）
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # 迁移的 DDL 必须在这里被真正执行过。
+    # 本地没装 Postgres 时它是**不可验证**的，所以这个 job 不是可选项。
+    strategy:
+      matrix:
+        postgres: [16, 17, 18]
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_USER: sloray
+          POSTGRES_PASSWORD: sloray
+          POSTGRES_DB: sloray
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      SLORAY_DATABASE_URL: postgres://sloray:sloray@localhost:5432/sloray
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: 安装匹配版本的 PostgreSQL 工具
+        env:
+          PG_MAJOR: ${{ matrix.postgres }}
+        run: scripts/ci-postgres-tools.sh
+
+      - name: 应用迁移
+        run: cargo run --locked --bin sloray -- migrate up
+
+      - name: 迁移状态
+        run: cargo run --locked --bin sloray -- migrate status
+
+      - name: 回滚一步（验证 down 可用）
+        run: cargo run --locked --bin sloray -- migrate down 1
+
+      - name: 重新应用（验证可重放）
+        run: cargo run --locked --bin sloray -- migrate up
+
+      - name: 真实数据库 setup 与双实例冒烟
+        env:
+          SLORAY_TEST_DATABASE_URL: postgres://sloray:sloray@localhost:5432/sloray
+        run: python3 scripts/smoke-setup.py
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.9.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: 安装前端依赖
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+      - name: Astro 开发模式与同源代理
+        env:
+          SLORAY_TEST_DATABASE_URL: postgres://sloray:sloray@localhost:5432/sloray
+        run: python3 scripts/smoke-dev.py
+      - name: 构建独立 SSR 产物
+        working-directory: web
+        run: pnpm run build
+      - name: 内容与 SSR 端到端验证
+        env:
+          SLORAY_TEST_DATABASE_URL: postgres://sloray:sloray@localhost:5432/sloray
+        run: |
+          python3 scripts/smoke-migrations.py
+          python3 scripts/smoke-content.py
+          python3 scripts/smoke-activity.py
+          python3 scripts/smoke-search.py
+          python3 scripts/smoke-media.py
+          python3 scripts/smoke-backup.py
+      - name: 安装浏览器
+        working-directory: web
+        run: pnpm exec playwright install --with-deps chromium
+      - name: 浏览器交互与无障碍审计
+        env:
+          SLORAY_TEST_DATABASE_URL: postgres://sloray:sloray@localhost:5432/sloray
+        run: python3 scripts/smoke-browser.py
+
+  web:
+    name: Astro（check / build）
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.9.1
+
+      # Astro 6+ 要求 Node >= 22.12。
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 契约类型一致性
+        run: pnpm run api:check
+
+      - name: 类型检查
+        run: pnpm run check
+
+      - name: 构建（首次部署未设置站点域名）
+        env:
+          SLORAY_PUBLIC_SITE_URL: ""
+        run: pnpm run build
+
+  governance:
+    name: 治理门禁（行数上限 / 依赖许可证）
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: 安装 cargo-deny
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny
+
+      - name: 架构扫描工具
+        run: sudo apt-get update -qq && sudo apt-get install -y ripgrep
+
+      # 与本地 `./scripts/check-architecture.sh` 是同一个脚本：
+      # 本地过不了，CI 一定过不了。约束见 AGENTS.md 第 1 节。
+      - name: 架构与合规检查
+        run: ./scripts/check-architecture.sh
+
+
+  deployment:
+    name: 部署脚本（语法 / 切换 / 回滚 / Nginx）
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: actionlint@1.7.12
+      - name: CI 流程静态检查
+        run: actionlint
+      - name: 安装验证工具
+        run: sudo apt-get update && sudo apt-get install -y nginx shellcheck
+      - name: Shell 静态检查
+        run: |
+          for f in deploy/scripts/*.sh scripts/*.sh; do bash -n "$f"; done
+          shellcheck deploy/scripts/*.sh scripts/*.sh
+      - name: 发布包路径与链接检查
+        run: python3 deploy/scripts/test-release-package.py
+      - name: 发布切换与回滚
+        run: deploy/scripts/test-activate-release.sh
+      - name: 滚动发布与首次安装
+        run: deploy/scripts/test-rollout.sh
+      - name: 备份失败与保留策略
+        run: deploy/scripts/test-backup.sh
+      - name: Nginx 配置与路径分流
+        run: python3 scripts/test-nginx.py
+
+  recovery:
+    name: 物理备份与按时间点恢复
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: 安装 PostgreSQL 服务工具
+        env:
+          PG_MAJOR: 18
+          PG_SERVER: 1
+        run: scripts/ci-postgres-tools.sh
+      - name: 隔离 PITR 恢复演练
+        run: python3 scripts/smoke-pitr.py
+      - name: 本地开发数据库启动与重启
+        run: python3 scripts/test-dev-db.py
+
+  msrv:
+    name: 最低 Rust 版本（1.94.1）
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.1
+      - uses: Swatinem/rust-cache@v2
+      - name: 编译所有目标
+        run: cargo check --locked --workspace --all-targets

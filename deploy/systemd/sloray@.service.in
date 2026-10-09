@@ -1,0 +1,75 @@
+# sloray API 的 systemd 模板单元：`sloray@8080.service` / `sloray@8081.service`
+#
+# ⚠️ 这是一个**模板**（`.in`），里面的 @SLORAY_BIN@ 需要在安装时替换成真实路径。
+#    两个消费者都会做替换，所以这里只有一份事实来源：
+#      * `sloray systemd install`（cargo install 场景，路径来自 current_exe）
+#      * `deploy/scripts/activate-release.sh`（版本目录场景，路径是 current/bin/sloray）
+#
+# 用模板实例跑两个实例，是为了配合 Nginx 的被动故障切换做逐个重启。
+# 能做到这一点的前提是 API 本身无状态 —— 会话在数据库、媒体在对象存储、
+# 没有本地缓存需要预热，所以新实例一起来就能立刻接流量。
+
+[Unit]
+Description=sloray-blog API (端口 %i)
+Documentation=https://github.com/your-org/sloray-blog
+After=network-online.target
+Wants=network-online.target
+# 如果 Postgres 就在本机，打开下面这行让启动顺序更明确。
+# 刻意用 Wants 而不是 Requires：Requires 会在 PG 单元被改名/挪走时
+# 直接让 API 起不来，而这个依赖实际上是可恢复的（PG 恢复后 API 自己会连上）。
+# After=postgresql.service
+# Wants=postgresql.service
+
+# 防止「启动即崩溃」把机器拖垮：60 秒内最多重启 5 次，超过就停下来等人看。
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=exec
+User=sloray
+Group=sloray
+# 这个目录同时是运行时配置目录，所以用 @SLORAY_SHARED@ 而不是写死路径。
+WorkingDirectory=@SLORAY_SHARED@
+
+# 连接串、S3 凭据等可以放这里（0640 root:sloray），但**不是必需的**：
+# 首次配置走 /setup 向导，配置会写进 @SLORAY_SHARED@/config.json。
+# 这里只用于运维侧的环境变量覆盖（环境变量优先级最高）。
+EnvironmentFile=-/etc/sloray/api.env
+Environment=SLORAY_CONFIG_FILE=@SLORAY_SHARED@/config.json
+# 端口通过 ExecStart 的 --bind 参数指定；EnvironmentFile 总会覆盖 Environment。
+Environment=SLORAY_BIND_ADDR=127.0.0.1:%i
+
+ExecStart=@SLORAY_BIN@ serve --bind 127.0.0.1:%i
+
+# 崩溃自愈。注意：探针不健康**不**触发重启（由代理的被动失败检测处理），
+# 只有进程真的退出才重启，避免"数据库抖动 → 无限重启"。
+Restart=on-failure
+RestartSec=2s
+
+# 优雅退出：收到 SIGTERM 后最多 drain SLORAY_SHUTDOWN_TIMEOUT_SECS 秒。
+# TimeoutStopSec 要留余量，否则 systemd 会先 SIGKILL。
+KillSignal=SIGTERM
+TimeoutStopSec=20
+
+# ---- 加固 ----
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+LockPersonality=true
+# 全盘只读，但 setup 向导与 /admin/settings 要写运行时配置
+# （数据库连接串、S3 凭据、域名），所以必须显式开这一个可写目录。
+# 这是引入 Web 配置界面后**唯一**被放宽的地方，不要顺手扩大它。
+ReadWritePaths=@SLORAY_SHARED@
+# 注意：不要加 MemoryDenyWriteExecute —— 它会误伤部分运行时代码生成，
+# 而收益很小。Rust 本身并不需要 W+X 内存。
+
+[Install]
+WantedBy=multi-user.target

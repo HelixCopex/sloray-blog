@@ -1,0 +1,26 @@
+# Rust
+/target
+
+# Node / Astro
+node_modules/
+dist/
+.astro/
+
+# 环境与密钥：绝不入库
+.env
+.env.*
+!.env.example
+
+# 本地工具缓存（沙箱/CI 里 CARGO_HOME 与 pnpm store 被重定向到这里）
+.dev-cache/
+
+# 日志与运行时产物
+*.log
+api.env
+web.env
+config.json
+setup-token
+*.dump
+*.dump.sha256
+__pycache__/
+*.pyc

@@ -1,0 +1,27 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+// 纯静态页：构建期生成，运行时不经过 SSR。
+// 这类页面（关于、404、版权页）没必要占用 Node 进程。
+export const prerender = true;
+---
+
+<BaseLayout title="关于" description="关于静线数据库与这套架构">
+  <h1>关于</h1>
+
+  <p>
+    这是一个前后端分离的动态博客：Rust 负责数据与业务，Astro 负责呈现，
+    Postgres 是唯一权威源，媒体走对象存储。
+  </p>
+
+  <p>
+    部署目标是<strong>单台 VPS + 原生进程</strong>（systemd + Nginx，不上容器编排），
+    但数据层与进程模型刻意不写死单机假设 —— 详见仓库里的
+    <code>docs/architecture.md</code>。
+  </p>
+
+  <p class="muted">
+    本页在构建期静态生成（<code>export const prerender = true</code>），
+    所以即使 API 挂掉也能正常打开。
+  </p>
+</BaseLayout>

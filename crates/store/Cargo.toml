@@ -1,0 +1,19 @@
+[package]
+name = "sloray-store"
+description = "数据访问：SeaORM 实体与连接池"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+name = "sloray_store"
+path = "src/lib.rs"
+
+[dependencies]
+sloray-config.workspace = true
+sea-orm.workspace = true
+
+[lints]
+workspace = true

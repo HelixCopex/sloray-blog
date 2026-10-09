@@ -1,0 +1,11 @@
+[Unit]
+Description=Run sloray background tasks every 5 seconds
+
+[Timer]
+OnBootSec=10s
+OnUnitInactiveSec=5s
+AccuracySec=1s
+Unit=sloray-worker.service
+
+[Install]
+WantedBy=timers.target

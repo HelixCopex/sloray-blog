@@ -1,0 +1,15 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { serverGet, type PostPage } from '../../lib/api';
+const tag = Astro.params.slug ?? '';
+const cursor = Astro.url.searchParams.get('cursor');
+let page: PostPage | undefined;
+try { page = await serverGet<PostPage>(`/posts?tag=${encodeURIComponent(tag)}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`); }
+catch { Astro.response.status = 503; }
+Astro.response.headers.set('Cache-Control', 'no-store');
+---
+<BaseLayout title={`标签：${tag}`}>
+  <h1>标签：{tag}</h1>
+  {page ? <ul>{page.items.map(post => <li><a href={`/posts/${encodeURIComponent(post.slug)}`}>{post.title}</a><p>{post.summary}</p></li>)}</ul> : <p>文章暂时不可用。</p>}
+  {page?.next_cursor && <a href={`?cursor=${encodeURIComponent(page.next_cursor)}`}>下一页</a>}
+</BaseLayout>

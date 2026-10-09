@@ -1,0 +1,5 @@
+# channel = "stable" 而不是固定小版本：CI 与本机都是 stable，
+# 避免 rustup 为了一个不存在的精确版本去下载工具链。
+[toolchain]
+channel = "stable"
+components = ["rustfmt", "clippy"]

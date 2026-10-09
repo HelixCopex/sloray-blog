@@ -1,0 +1,90 @@
+# 媒体与对象存储
+
+浏览器预签名直传，Rust 校验登记，worker 从 outbox 生成公开 WebP。
+图片字节不经 API/Nginx 上传、不落 serve 本地盘。Postgres 保存权威元数据和任务，
+原图私有对象是字节的权威副本，公开图可重建。见 ADR-0010、0017、0018。
+
+## 必须分开的两个 bucket
+
+R2 的自定义域名公开的是 bucket，`private/` 前缀不提供权限保护。
+创建两个 bucket：
+
+| 配置 | 用途 | 公开访问 |
+|---|---|---|
+| `s3.bucket` / SLORAY_S3_BUCKET | 原图，例如 sloray-originals | 禁止自定义公开域名和 r2.dev |
+| `media_public_bucket` / SLORAY_MEDIA_PUBLIC_BUCKET | WebP，例如 sloray-public | 绑定媒体自定义域名 |
+| `media_public_base_url` / SLORAY_MEDIA_PUBLIC_BASE_URL | 如 https://media.example.com | 只能指向派生图 bucket |
+
+程序拒绝两个 bucket 相同，公开 bucket 与 URL 必须成对提供，S3 五项配置需完整。
+应用凭据授权读写这两个 bucket；不在浏览器暴露 Secret Access Key。
+公开派生 bucket 不收浏览器原图上传。
+[Cloudflare 对公开 bucket 的说明](https://developers.cloudflare.com/r2/buckets/public-buckets/)
+解释了该隔离的原因。历史已公开原图需关闭入口并清理旧缓存。
+
+配置在 `/admin/settings` 的对象存储与图片区域填写；Secret/Token 留空保持原值。
+CDN zone/token 成对可选；未配置时公开图使用 no-cache，避免无法撤回的长期缓存。
+首次 setup 可跳过 S3，之后再启用媒体。
+
+## 上传、重试与公开
+
+1. 管理员选择 PNG/JPEG/WebP，前端计算 SHA-256。
+2. POST `/api/v1/admin/media/presign`，声明类型、字节数与 hash。
+   大小最大 10 MiB；已验证并处理完成的相同 hash 可直接返回媒体。
+3. 新上传许可有效 10 分钟。签名 PUT 固定类型、SHA-256 校验、`If-None-Match: *`，
+   对象 key 为私有 bucket 内 `private/YYYY/MM/<uuid>.<ext>`，禁止覆盖。
+4. 浏览器直接 PUT 并显示进度；POST `/api/v1/admin/media` 登记 upload_id。
+   服务端锁定许可，校验所有者、到期、HEAD 的大小/类型与实际 magic bytes，拒绝伪装 SVG。
+   媒体行、完成状态与 media.generate outbox 在同一事务写入；重试登记返回同一媒体。
+5. worker 读取完整私有原图，再验证真实 SHA-256 与大小，解码并重编码为无原图元数据的 WebP。
+   生成 320/640/960/1280/1920 中不超过原宽度的尺寸；小于 320 的图片生成原宽度版本。
+   限制边长 10000px、像素 3200 万、解码分配 128 MiB，CPU 工作使用阻塞线程。
+6. 派生 key 为公开 bucket 内 `media/<id>/v1/<width>.webp`，条件创建且幂等重试。
+   全部成功后标记 ready/verified，公共 `/api/v1/media/<id>` 才提供 URL。
+   前端轮询至就绪，可设封面或插入正文。文章响应式封面带 srcset 和尺寸。
+
+“登记成功”不等于“处理完成”；转换失败的媒体不会公开，任务保留并退避。
+查看 worker journal 与 outbox 的任务 ID、次数、available_at 排查。
+上传进度失败可重新选择文件重试，新许可不会覆盖原 key；未登记旧对象交 GC 处理。
+
+## 原图 bucket 的 CORS
+
+允许站点精确 origin、PUT 和签名使用的头。示例需替换域名：
+
+```json
+[{
+  "AllowedOrigins": ["https://blog.example.com"],
+  "AllowedMethods": ["PUT"],
+  "AllowedHeaders": ["content-type", "if-none-match", "x-amz-checksum-sha256", "x-amz-*"],
+  "ExposeHeaders": ["ETag"],
+  "MaxAgeSeconds": 3600
+}]
+```
+
+以真实浏览器和供应商 API 验收 CORS 与签名校验。
+CORS 不是读取权限控制，私有 bucket 仍须关闭所有公开入口。
+公开派生域使用正确 Content-Type=image/webp；只有 worker 凭据能写。
+
+## 删除、缓存与重建
+
+管理员在媒体管理页删除，API 立即软删除，清空引用该封面的文章并增加文章版本，
+事务内写入 media.delete。worker 删除私有原图与所有公开尺寸，再清理 CDN；失败可重试。
+正文里手写的旧 URL 无法自动恢复语义，需在编辑器删除；对象删除后旧地址不可再取回。
+已经在浏览器或第三方缓存中的副本无法承诺瞬时撤回。
+
+启用 Cloudflare purge 时填 zone/token（仅需目标 zone 的 Cache Purge 权限）。
+投递按 URL 清理，失败指数退避至最多 900 秒，未成功不标记完成。
+动态 HTML 始终重验证，CDN 必须尊重 no-store/no-cache；不启用 Cache Everything。
+派生版本目录变更需保留旧对象直到新 URL 切换，不覆盖同一 immutable key。
+
+```bash
+sloray worker --once
+sloray rebuild-media      # 重新投递所有未删除原图的派生任务
+sloray media-gc           # 默认仅列候选
+sloray media-gc --apply   # 删除 24h 前无登记/无活跃许可的私有孤儿
+```
+
+生产 worker timer 每约 5 秒触发；不要依赖手工执行才生成图片。
+GC 只列本站私有前缀，保护已登记媒体与尚未过期的许可；默认不删除对象。
+备份必须另覆盖私有原图，不能仅备份公开派生图或 Postgres。
+本地协议模拟器测试与真实浏览器覆盖的边界见 [verification.md](verification.md)，
+不等同于已连接线上 R2/Cloudflare。
