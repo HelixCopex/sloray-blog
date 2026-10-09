@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [master, main]
+    branches: [dev, main]
   pull_request:
 
 permissions:
@@ -17,6 +17,25 @@ env:
   ASTRO_TELEMETRY_DISABLED: 1
 
 jobs:
+  history:
+    name: 线性历史（禁止 merge commit）
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: 检查真实源分支历史
+        run: |
+          merges="$(git rev-list --min-parents=2 HEAD)"
+          if [[ -n "$merges" ]]; then
+            echo '分支包含 merge commit；请按 CONTRIBUTING.md 保持线性历史。'
+            git log --merges --oneline
+            exit 1
+          fi
+          echo 'PASS 当前分支提交历史线性，无 merge commit'
+
   rust:
     name: Rust（fmt / clippy / test）
     runs-on: ubuntu-latest

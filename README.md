@@ -3,7 +3,7 @@
 Rust（axum + SeaORM）+ Astro SSR 的动态博客，单台 VPS 原生部署，目标反向代理是 Nginx。
 
 启动项目先读 [开发指南](docs/development.md)；改代码前读 [架构](docs/architecture.md) 和
-[贡献指南](AGENTS.md)，部署主机时读 [部署手册](docs/deployment.md)。
+[贡献指南](CONTRIBUTING.md) 和 [治理约定](AGENTS.md)，部署主机时读 [部署手册](docs/deployment.md)。
 专项说明：[中文检索](docs/search.md)、[媒体](docs/media.md)、[备份恢复](docs/backup.md)、
 [ADR](docs/adr/README.md)、[本地验证记录](docs/verification.md)。
 
@@ -18,6 +18,10 @@ Postgres 保存权威业务记录，外部对象操作经 outbox。原图与公�
 媒体/会话不落 API 本地磁盘；配置 shared/ 是唯一部署期可写目录。
 
 ## 本地开发
+
+日常开发更改提交到 `dev`，所有分支保持线性历史。版本递增由项目维护者决定；
+包含版本变更的 `dev` 最新提交通过完整 CI 后，每个版本只向 `main` 快进合并一次。
+操作步骤见 [贡献指南](CONTRIBUTING.md)。
 
 依赖 Rust ≥ **1.94.1**、Node ≥ **22.12**、pnpm **12.9.1**、Postgres ≥ **16**。
 图像与 SDK 的本地构建需要 C 工具链、pkg-config 和 CMake。中文 PG 扩展可选，

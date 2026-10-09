@@ -75,9 +75,13 @@ sudo -u postgres psql -d sloray -tAc \
 
 ## 3. 首次编译与发布
 
+生产部署使用维护者批准并已从 `dev` 快进到 `main` 的版本标签。
+版本递增、最新 `dev` 完整 CI 与一次快进的顺序见 [贡献指南](../CONTRIBUTING.md)。
+下例中的 `<批准的版本号>` 必须替换为实际已批准的版本，不带 `v`。
+
 ```bash
-sudo git clone <repo> /srv/sloray/src
-sudo CARGO_JOBS=1 /srv/sloray/src/deploy/scripts/deploy-on-vps.sh
+sudo git clone --branch main <repo> /srv/sloray/src
+sudo CARGO_JOBS=1 /srv/sloray/src/deploy/scripts/deploy-on-vps.sh 'v<批准的版本号>'
 ```
 
 部署前确认源码是已提交的版本，发布脚本拒绝脏目录。确认 `node --version` ≥22.12、

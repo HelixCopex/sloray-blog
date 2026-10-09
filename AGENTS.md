@@ -11,6 +11,7 @@
 | 你要做的事 | 先读 |
 |---|---|
 | 改任何代码 | 本文件第 1、2 节 |
+| 开始开发、提交或发布 | 第 5.4 节 + [`CONTRIBUTING.md`](CONTRIBUTING.md) |
 | 加依赖 | 本文件第 4 节 |
 | 改数据库 schema | [`docs/architecture.md`](docs/architecture.md) + 第 5.2 节的迁移纪律 |
 | 改部署流程 | [`docs/deployment.md`](docs/deployment.md) |
@@ -222,6 +223,24 @@ deploy/scripts/test-activate-release.sh  # 发布切换与回滚
 
 小改动（加接口、修 bug、重构文件）不需要 ADR。
 
+### 5.4 分支、线性历史与版本发布
+
+* **日常开发更改必须提交到 `dev`**；人类贡献者和 AI 代理都遵守此规则。
+  临时工作分支从 `dev` 创建，完成后以线性历史集成回 `dev`。
+* **所有分支必须保持线性历史**，不允许 merge commit。合并使用
+  `git merge --ff-only`；共享的 `dev` / `main` 不得重写历史或强推。
+* **`main` 每个版本只从 `dev` 快进合并一次**，不接受直接开发提交、独立修复、
+  cherry-pick、squash merge 或 rebase merge；发布 SHA 必须保留不变。
+* **版本是否递增、递增到哪个版本及是否发布，由项目维护者（仓库所有者）决定**。
+  CI、脚本和 AI 代理不得自行递增版本、创建发布标签或推进 `main`。
+* 获准版本更改仍提交到 `dev`，**包含版本更改的最新 SHA 必须通过完整 push CI**。
+  旧提交或 PR 的成功不能替代；新增提交后重新验证并确认发布 SHA。
+* 发布须记录批准版本、SHA 与成功的 CI run，再一次 `--ff-only` 推进 `main`。
+  无法快进、CI 未全部成功或未得到维护者发布决定时，停止发布。
+
+详细步骤见 [`CONTRIBUTING.md`](CONTRIBUTING.md)，决策见
+[ADR-0019](docs/adr/0019-linear-history-and-dev-releases.md)。
+
 ---
 
 ## 6. 快速参考
@@ -245,6 +264,7 @@ sudo cargo run --bin sloray -- systemd install
 | 想找什么 | 去哪 |
 |---|---|
 | 架构与取舍 | `docs/architecture.md` |
+| 开发贡献、分支与发布规则 | `CONTRIBUTING.md` |
 | 部署步骤 | `docs/deployment.md` |
 | 中文检索设计 | `docs/search.md` |
 | 媒体与对象存储 | `docs/media.md` |
