@@ -6409,11 +6409,15 @@
           "status",
           "show_in_nav",
           "nav_order",
+          "dock_icon",
           "version",
           "updated_at"
         ],
         "properties": {
           "body_md": {
+            "type": "string"
+          },
+          "dock_icon": {
             "type": "string"
           },
           "id": {
@@ -6479,10 +6483,14 @@
           "status",
           "show_in_nav",
           "nav_order",
+          "dock_icon",
           "version",
           "updated_at"
         ],
         "properties": {
+          "dock_icon": {
+            "type": "string"
+          },
           "id": {
             "type": "string",
             "format": "uuid"
@@ -7264,6 +7272,9 @@
         ],
         "properties": {
           "body_md": {
+            "type": "string"
+          },
+          "dock_icon": {
             "type": "string"
           },
           "nav_order": {

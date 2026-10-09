@@ -534,6 +534,7 @@ export interface components {
         };
         Page: {
             body_md: string;
+            dock_icon: string;
             /** Format: uuid */
             id: string;
             /** Format: int32 */
@@ -553,6 +554,7 @@ export interface components {
             next_cursor?: string | null;
         };
         PageSummary: {
+            dock_icon: string;
             /** Format: uuid */
             id: string;
             /** Format: int32 */
@@ -781,6 +783,7 @@ export interface components {
         };
         WritePage: {
             body_md: string;
+            dock_icon?: string;
             /** Format: int32 */
             nav_order: number;
             show_in_nav: boolean;

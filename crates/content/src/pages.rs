@@ -4,9 +4,10 @@ use sea_orm::DatabaseConnection;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-const SUMMARY: &str = "id,slug,title,summary,status,show_in_nav,nav_order,version,updated_at";
+const SUMMARY: &str =
+    "id,slug,title,summary,status,show_in_nav,nav_order,dock_icon,version,updated_at";
 const DETAIL: &str =
-    "id,slug,title,summary,body_md,status,show_in_nav,nav_order,version,updated_at";
+    "id,slug,title,summary,body_md,status,show_in_nav,nav_order,dock_icon,version,updated_at";
 
 fn administrator(actor: Actor) -> Result<()> {
     if actor.admin {
@@ -46,9 +47,14 @@ fn validate(input: &WritePage) -> Result<()> {
         || input.summary.chars().count() > 1000
         || input.body_md.len() > 512_000
         || !["draft", "published"].contains(&input.status.as_str())
+        || ![
+            "article", "home", "person", "image", "reading", "comment", "tag", "rss", "preview",
+            "palette", "settings", "edit",
+        ]
+        .contains(&input.dock_icon.as_str())
     {
         return Err(Error::Validation(
-            "页面地址、标题、正文或状态不合法（地址不能使用系统保留路径）".into(),
+            "页面地址、标题、正文、图标或状态不合法（地址不能使用系统保留路径）".into(),
         ));
     }
     Ok(())
@@ -149,6 +155,7 @@ pub async fn save(
         input.status.into(),
         input.show_in_nav.into(),
         input.nav_order.into(),
+        input.dock_icon.into(),
     ];
     let sql = if let Some(id) = id {
         get(db, actor, id).await?;
@@ -157,12 +164,12 @@ pub async fn save(
             .ok_or_else(|| Error::Validation("更新必须提供 version".into()))?;
         values.extend([id.into(), version.into()]);
         format!(
-            "UPDATE pages SET slug=$1,title=$2,summary=$3,body_md=$4,status=$5,show_in_nav=$6,nav_order=$7,version=version+1,updated_at=now() WHERE id=$8 AND version=$9 AND deleted_at IS NULL RETURNING {DETAIL}"
+            "UPDATE pages SET slug=$1,title=$2,summary=$3,body_md=$4,status=$5,show_in_nav=$6,nav_order=$7,dock_icon=$8,version=version+1,updated_at=now() WHERE id=$9 AND version=$10 AND deleted_at IS NULL RETURNING {DETAIL}"
         )
     } else {
         values.push(Uuid::now_v7().into());
         format!(
-            "INSERT INTO pages(slug,title,summary,body_md,status,show_in_nav,nav_order,id) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING {DETAIL}"
+            "INSERT INTO pages(slug,title,summary,body_md,status,show_in_nav,nav_order,dock_icon,id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING {DETAIL}"
         )
     };
     query::one(db, &sql, values).await?.ok_or(Error::Conflict)
@@ -187,6 +194,7 @@ mod tests {
             status: "published".into(),
             show_in_nav: true,
             nav_order: i32::MIN,
+            dock_icon: "article".into(),
             version: None,
         };
         assert!(validate(&input).is_ok());
@@ -213,12 +221,27 @@ mod tests {
             status: "draft".into(),
             show_in_nav: true,
             nav_order: 0,
+            dock_icon: "article".into(),
             version: None,
         };
         assert!(validate(&input).is_ok());
         for slug in ["admin", "LOGIN", "api", "_astro", "a/b", "rss.xml", ""] {
             input.slug = slug.into();
             assert!(validate(&input).is_err(), "{slug}");
+        }
+    }
+    #[test]
+    fn old_clients_default_to_article_and_icons_are_allowlisted() {
+        let mut input: WritePage = serde_json::from_str(r#"{"slug":"about","title":"关于","body_md":"","status":"draft","show_in_nav":true,"nav_order":0}"#).unwrap();
+        assert_eq!(input.dock_icon, "article");
+        assert!(validate(&input).is_ok());
+        for icon in ["palette", "person", "reading"] {
+            input.dock_icon = icon.into();
+            assert!(validate(&input).is_ok());
+        }
+        for icon in ["", "unknown", "javascript:alert(1)", "<svg>"] {
+            input.dock_icon = icon.into();
+            assert!(validate(&input).is_err());
         }
     }
 }

@@ -13,6 +13,7 @@ pub struct PageSummary {
     pub status: String,
     pub show_in_nav: bool,
     pub nav_order: i32,
+    pub dock_icon: String,
     pub version: i32,
     pub updated_at: DateTime<Utc>,
 }
@@ -27,6 +28,7 @@ pub struct Page {
     pub status: String,
     pub show_in_nav: bool,
     pub nav_order: i32,
+    pub dock_icon: String,
     pub version: i32,
     pub updated_at: DateTime<Utc>,
 }
@@ -47,5 +49,10 @@ pub struct WritePage {
     pub status: String,
     pub show_in_nav: bool,
     pub nav_order: i32,
+    #[serde(default = "default_dock_icon")]
+    pub dock_icon: String,
     pub version: Option<i32>,
+}
+fn default_dock_icon() -> String {
+    "article".into()
 }

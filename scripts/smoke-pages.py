@@ -9,8 +9,10 @@ with App() as app:
     assert app.json('/api/v1/admin/pages','POST',page,csrf=False)[0] == 403
     for slug in ['admin','login','search','posts','_astro','api','a/b']:
         assert app.json('/api/v1/admin/pages','POST',page|{'slug':slug})[0] == 422
+    for icon in ['unknown', 'javascript:alert(1)', '<svg>', '']:
+        assert app.json('/api/v1/admin/pages','POST',page|{'dock_icon':icon})[0] == 422
     status,_,created = app.json('/api/v1/admin/pages','POST',page)
-    assert status == 201 and created['version'] == 1
+    assert status == 201 and created['version'] == 1 and created['dock_icon'] == 'article'
     identifier = created['id']
     assert app.json('/api/v1/pages/contact',cookie=False)[0] == 404
     assert all(item['slug'] != 'contact' for item in app.json('/api/v1/pages',cookie=False)[2]['items'])
@@ -30,15 +32,16 @@ with App() as app:
     assert app.request('/admin/pages/new',web=True,cookie=author_cookie)[0] == 403
     assert b'/admin/posts' not in app.request('/',web=True)[2]
     assert '管理后台' in app.request('/',web=True,cookie=app.cookie)[2].decode()
-    page |= {'status':'published','version':1}
+    page |= {'status':'published','version':1,'dock_icon':'palette'}
     assert app.json(f'/api/v1/admin/pages/{identifier}','PUT',page)[0] == 200
     assert app.json(f'/api/v1/admin/pages/{identifier}','PUT',page)[0] == 409
     listing = app.json('/api/v1/pages?limit=1',cookie=False)[2]
-    assert listing['items'][0]['slug'] == 'contact' and listing['next_cursor']
+    assert listing['items'][0]['slug'] == 'contact' and listing['items'][0]['dock_icon'] == 'palette' and listing['next_cursor']
     assert app.json('/api/v1/pages?cursor='+listing['next_cursor'],cookie=False)[2]['items'][0]['slug'] == 'about'
     assert app.json('/api/v1/admin/pages?cursor='+listing['next_cursor'])[0] == 422
     status,headers,body = app.request('/contact',web=True)
     html = body.decode()
+    assert 'data-icon="palette"' in html and 'reading-summary' in html and 'reader-bar' not in html
     assert status == 200 and '<h2 id="联系方式">联系方式</h2>' in html and '<strong>邮件</strong>' in html
     assert '<script>alert(1)</script>' not in html and 'href="javascript:' not in html
     assert headers['cache-control'] == 'no-store'
@@ -64,4 +67,4 @@ with App() as app:
     assert app.json(f'/api/v1/admin/pages/{identifier}')[0] == 404
     assert app.sql("SELECT count(*)>0 FROM outbox WHERE topic='cdn.purge' AND payload->'paths' ? '/contact'") == 't'
     print('PASS 页面管理员权限/CSRF、保留地址、版本冲突、游标、发布/改址/撤回/删除、导航和 sitemap')
-    print('PASS 页面 SSR 与 Markdown 预览一致、脚本/危险链接清洗、预览认证与长度限制、purge outbox')
+    print('PASS 页面 SSR 与 Markdown 预览一致、脚本/危险链接清洗、预览认证与长度限制、purge outbox、Dock 图标默认/持久化/白名单校验')

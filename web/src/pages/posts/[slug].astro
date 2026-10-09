@@ -5,7 +5,7 @@ import { renderArticle } from '../../lib/render-markdown';
 import type { components } from '../../lib/schema';
 let cover: components['schemas']['Media'] | undefined;
 import Discussion from '../../components/Discussion.astro';
-import ReadingTools from '../../components/islands/ReadingTools.astro';
+import ReadingProgress from '../../components/islands/ReadingProgress.astro';
 import ReadingToc from '../../components/islands/ReadingToc.astro';
 let post: Post | undefined;
 let content = '';
@@ -25,13 +25,13 @@ if (post?.cover_media_id) {
 const articleUrl = new URL(Astro.url.pathname, Astro.locals.publicSiteUrl ?? Astro.site ?? Astro.url.origin).href;
 const jsonLd = post && JSON.stringify({ '@context': 'https://schema.org', '@type': 'BlogPosting', headline: post.title, description: post.summary, datePublished: post.published_at, dateModified: post.updated_at, author: { '@type': 'Person', name: post.author_name }, image: cover?.variants.at(-1)?.url, url: articleUrl }).replace(/</g, '\\u003c');
 ---
-<BaseLayout title={post ? `${post.title} · 静线数据库` : '文章不可用'} description={post?.summary}>
+<BaseLayout title={post ? `${post.title} · 静线数据库` : '文章不可用'} description={post?.summary} dockContext={post ? { kind: 'post', id: post.id, slug: post.slug, author_id: post.author_id } : undefined}>
   {post ? <article class="reading-page">
     <header class="reading-header">
     <h1>{post.title}</h1>
     <p class="meta">{post.author_name} · {post.published_at && <time datetime={post.published_at}>{new Date(post.published_at).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' })}</time>}</p>
     {cover?.ready && cover.variants.length > 0 && <img src={cover.variants.at(-1)!.url} srcset={cover.variants.map(v => `${v.url} ${v.width}w`).join(', ')} sizes="(max-width: 768px) 100vw, 768px" width={cover.width ?? undefined} height={cover.height ?? undefined} alt={`${post.title}封面`} class="cover" fetchpriority="high" />}
-    <ReadingTools minutes={Math.max(1, Math.ceil(post.body_md.length / 450))} />
+    <p class="reading-summary">{post.summary}</p><ReadingProgress />
     </header>
     <div class="reading-layout">
     <div class="reading-content">

@@ -1,6 +1,7 @@
 # ADR-0021：响应式 Dock、首页编排与站点标识
 
 - 状态：已接受
+- 独立品牌首页入口与阅读工具部分 Superseded by [ADR-0023](0023-contextual-dock-and-action-dialogs.md)。
 - Dock 可见文字与目录布局部分 Superseded by [ADR-0022](0022-icon-dock-following-toc-and-background.md)。
 - 日期：2026-10-10
 - 部分取代 ADR-0020 的导航位置与首页区块限制；数据主题和原生群岛边界继续有效。

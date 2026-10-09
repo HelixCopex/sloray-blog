@@ -9,7 +9,7 @@ export async function testExperience(page, origin, audit) {
   check(await page.evaluate(() => window.__widgetProof) === 'stable', 'widget refresh reloaded document');
   check(await page.locator('.site-dock').innerText() === '', 'Dock contains visible text');
   check(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundImage) === 'none', 'default background gradient remains');
-  for (const width of [360, 768, 1440, 3840]) {
+  for (const width of [320, 360, 768, 1440, 3840]) {
     await page.setViewportSize({width,height:900}); await audit();
     check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `home overflows ${width}`);
     if (width < 1000) {
@@ -32,19 +32,18 @@ export async function testExperience(page, origin, audit) {
   await page.emulateMedia({colorScheme:'light',reducedMotion:'no-preference'});
   await page.setViewportSize({width:1280,height:720});
   await page.goto(origin + '/posts/browser-seed');
-  await page.locator('reading-tools').waitFor();
-  await page.getByLabel('正文字号').selectOption('1.25');
-  await page.reload();
-  check(await page.getByLabel('正文字号').inputValue() === '1.25', 'reading size lost');
-  await page.getByRole('button',{name:'专注阅读',exact:true}).click();
-  check(await page.locator('body').getAttribute('data-reading-focus') !== null, 'focus mode missing');
-  await page.getByRole('button',{name:'专注阅读',exact:true}).click();
+  await page.locator('reading-progress').waitFor({state:'attached'});
+  check(await page.locator('reading-tools,.reader-bar').count() === 0, 'removed reader controls remain');
+  check(await page.locator('.reading-summary').textContent() === '在文字与交互之间，留出阅读的空间。', 'summary missing');
+  check(await page.locator('.discussion button,.discussion form').count() === 0, 'article still contains actions');
+  await testDockActions(page, origin, audit);
   check(await page.getByRole('navigation',{name:'正文目录'}).getByRole('link').count() === 1, 'article headings not in TOC');
   await audit();
   await testReadingToc(page, origin, audit);
+  await testDockFallback(page.context().browser(), origin);
   await page.setViewportSize({width:1280,height:720});
   await page.goto(origin);
-  console.log('PASS 纯图标 Dock 展开/Escape、360/768/1440/3840 布局/axe、减少动态效果、群岛独立刷新、字号持久化与专注阅读');
+  console.log('PASS 纯图标 Dock 展开/Escape、360/768/1440/3840 布局/axe、减少动态效果、群岛独立刷新、摘要替换阅读控制栏与 Dock 上下文操作');
 }
 
 async function testReadingToc(page, origin, audit) {
@@ -109,4 +108,80 @@ export async function testIdentity(page, context, origin, audit) {
   await page.getByRole('button',{name:'保存站点标识',exact:true}).click();
   await page.getByText('站点标识已保存，公开页面刷新后生效。',{exact:true}).waitFor();
   console.log('PASS 设置页站点名称/Favicon 保存、页面标题/导航/RSS 同步与恢复默认');
+}
+
+async function testDockActions(page, origin, audit) {
+  check(await page.locator('site-dock [data-dock-key=home] img').getAttribute('src') === '/favicon.svg', 'home favicon is outside Dock');
+  await page.getByRole('button',{name:'评论',exact:true}).click();
+  await page.locator('#comment-body').fill('保留的评论草稿');
+  await page.screenshot({path:'/tmp/sloray-comment-dialog.png'});
+  await audit();
+  await page.getByRole('button',{name:'关闭评论',exact:true}).click();
+  page.once('dialog', dialog => dialog.dismiss());
+  await page.getByRole('link',{name:'主页',exact:true}).click();
+  check(page.url().endsWith('/posts/browser-seed'), 'cancelled comment navigation changed page');
+  check(await page.locator('[data-comment-dialog]').evaluate(el => el.open), 'cancel did not retain modal');
+  check(await page.locator('#comment-body').inputValue() === '保留的评论草稿', 'cancel lost comment draft');
+  await page.getByRole('button',{name:'关闭评论',exact:true}).click();
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('link',{name:'主页',exact:true}).click();
+  await page.waitForURL(origin + '/');
+  check(await page.locator('site-dock [data-like],site-dock [data-comment-open]').count() === 0, 'post actions leaked to home');
+  await page.evaluate(() => { window.__dockNode = document.querySelector('site-dock'); window.__homeNode = document.querySelector('[data-dock-key=home]'); window.__dockMotion = window.__homeNode.animate([{rotate:'0deg'},{rotate:'360deg'}], {duration:60000, iterations:Infinity}); window.__dockMotion.currentTime = 10000; });
+  await page.getByRole('link',{name:'浏览器测试文章',exact:true}).click();
+  await page.locator('.discussion[data-bound=true]').waitFor();
+  check(await page.evaluate(() => window.__dockNode === document.querySelector('site-dock') && window.__homeNode === document.querySelector('[data-dock-key=home]')), 'Dock nodes replaced during AJAX navigation');
+  check(await page.evaluate(() => window.__dockMotion.currentTime >= 10000 && window.__dockMotion.playState === 'running'), 'Dock animation timeline reset');
+  await page.evaluate(() => window.__dockMotion.cancel());
+  await page.getByRole('button',{name:'评论',exact:true}).click();
+  await page.locator('#comment-body').fill('前进后退保留的评论');
+  await page.getByRole('button',{name:'关闭评论',exact:true}).click();
+  const historyPrompt = page.waitForEvent('dialog');
+  await page.evaluate(() => history.back());
+  const prompt = await historyPrompt; await prompt.dismiss();
+  await page.waitForFunction(() => location.pathname === '/posts/browser-seed' && document.querySelector('[data-comment-dialog]').open);
+  check(await page.locator('#comment-body').inputValue() === '前进后退保留的评论', 'browser back lost comment draft');
+  await page.getByRole('button',{name:'关闭评论',exact:true}).click();
+  const discardPrompt = page.waitForEvent('dialog');
+  await page.evaluate(() => history.back());
+  const discard = await discardPrompt; await discard.accept();
+  await page.waitForURL(origin + '/');
+  await page.goForward();
+  await page.locator('.discussion[data-bound=true]').waitFor();
+  await page.getByRole('link',{name:'搜索',exact:true}).click();
+  await page.waitForTimeout(400);
+  check(page.url().endsWith('/posts/browser-seed'), 'opening search navigated before confirmation');
+  check(await page.locator('[data-search-dialog]').evaluate(el => getComputedStyle(el,'::backdrop').backgroundColor) === 'rgba(0, 0, 0, 0.85)', 'search backdrop is not black');
+  await audit();
+  await page.screenshot({path:'/tmp/sloray-search-dialog.png'});
+  await page.locator('#search-dialog-q').press('Escape');
+  await page.locator('[data-search-dialog]').waitFor({state:'hidden'});
+  await page.setViewportSize({width:320,height:844});
+  check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.querySelector('.dock-panel').scrollWidth <= document.querySelector('.dock-panel').clientWidth), 'post Dock overflows 320px');
+  await page.getByRole('button',{name:'评论',exact:true}).waitFor();
+  check(await page.getByRole('button',{name:'评论',exact:true}).isVisible(), 'mobile collapsed Dock hides comment');
+  await page.setViewportSize({width:1280,height:720});
+  await page.screenshot({path:'/tmp/sloray-contextual-article.png'});
+  console.log('PASS Favicon 主页、按页面切换操作、评论取消/放弃草稿、黑色搜索弹窗、320px Dock、AJAX 节点与动画时间线连续');
+}
+
+async function testDockFallback(browser, origin) {
+  const context = await browser.newContext();
+  await context.addInitScript(() => { Element.prototype.moveBefore = undefined; });
+  try {
+    const page = await context.newPage(); await page.goto(origin);
+    await page.locator('site-dock[data-ready=true]').waitFor();
+    await page.evaluate(() => {
+      window.__dock = document.querySelector('site-dock'); window.__home = document.querySelector('[data-dock-key=home]');
+      const ripple = document.createElement('span'); ripple.className = 'touch-ripple'; ripple.style.animationDuration = '60s'; window.__home.append(ripple);
+      window.__ripple = ripple; ripple.getAnimations()[0].currentTime = 7000;
+    });
+    await page.getByRole('link',{name:'浏览器测试文章',exact:true}).click();
+    await page.locator('.discussion[data-bound=true]').waitFor();
+    check(await page.evaluate(() => window.__dock === document.querySelector('site-dock') && window.__home === document.querySelector('[data-dock-key=home]') && window.__ripple.getAnimations()[0]?.currentTime >= 7000), 'fallback browser reset persisted CSS animation');
+    await page.getByRole('link',{name:'搜索',exact:true}).click();
+    await page.locator('[data-search-dialog]').waitFor();
+    check(page.url().endsWith('/posts/browser-seed'), 'fallback browser duplicated navigation listeners');
+    console.log('PASS 禁用 moveBefore 的旧浏览器路径保持 Dock 节点、CSS 动画时间及弹窗监听');
+  } finally { await context.close(); }
 }

@@ -21,6 +21,7 @@ mod m20261009_000004_media;
 mod m20261009_000005_pages;
 mod m20261009_000006_themes;
 mod m20261009_000007_site_identity;
+mod m20261010_000008_page_dock_icon;
 
 /// 迁移用的咨询锁 key：`0x736C6F726179` 就是 ASCII 的 "sloray"。
 ///
@@ -43,6 +44,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20261009_000005_pages::Migration),
             Box::new(m20261009_000006_themes::Migration),
             Box::new(m20261009_000007_site_identity::Migration),
+            Box::new(m20261010_000008_page_dock_icon::Migration),
         ]
     }
 }

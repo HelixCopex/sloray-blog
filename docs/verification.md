@@ -796,3 +796,59 @@ PASS HTML 登录、后台连续保存、跨域直传与封面展示、点赞、�
 页面创建/发布/撤回/删除；深浅色、减少动态效果和宽主题 Dock 间距均覆盖。
 验证中修复了锚点小数像素高亮边界、Astro 自定义元素 hidden=false 的 SSR 隐藏问题，
 并为可横向滚动的代码块增加键盘焦点。以上为本地验证，未执行远程 push CI 或生产发布。
+
+## 页面上下文 Dock 与动作弹窗（2026-10-10）
+
+本次按 ADR-0023 合并 Favicon 主页入口、内置页面图标、文章/后台编辑操作集、
+搜索与评论 dialog、摘要和持久切页。第八条 expand 迁移只增加 pages.dock_icon，
+旧页面及省略字段的旧客户端使用 article。测试使用现有 Postgres 的 UUID 临时库，
+没有给开发库写入测试内容或应用迁移。
+
+实际执行并退出 0：
+`cargo fmt --all -- --check`、`cargo clippy --locked --workspace --all-targets -- -D warnings`、
+`cargo test --locked --workspace`（63 项，0 失败）、`./scripts/check-architecture.sh`、
+`pnpm run api:check`、`test`、`check`、`build`（web 目录）、`git diff --check`。
+OpenAPI 本地引用、与 HEAD 契约兼容检查及 6 项契约检查器测试均通过。实际输出：
+
+```text
+ℹ tests 11
+ℹ pass 11
+ℹ fail 0
+Result (67 files):
+- 0 errors
+- 0 warnings
+- 0 hints
+[build] Complete!
+advisories ok, bans ok, licenses ok, sources ok
+结果：全部通过
+```
+
+构建仍显示既有上游 MDX/HAST MODULE_LEVEL_DIRECTIVE 提示；没有新增依赖。
+`deploy/scripts/test-activate-release.sh` 退出 0，输出“结果：全部通过”。
+在先构建当前 Rust 二进制与 Astro SSR 后，实际执行（统一设置 SLORAY_TEST_DATABASE_URL）：
+
+```text
+python3 scripts/smoke-migrations.py
+PASS 八条迁移 Applied；down all → up、down 1 → up、fresh，21 张表重建成功
+python3 scripts/smoke-pages.py
+PASS 页面管理员权限/CSRF、保留地址、版本冲突、游标、发布/改址/撤回/删除、导航和 sitemap
+PASS 页面 SSR 与 Markdown 预览一致、脚本/危险链接清洗、预览认证与长度限制、purge outbox、Dock 图标默认/持久化/白名单校验
+python3 scripts/smoke-backup.py
+PASS 0600 逻辑备份、SHA-256 校验、空库完整恢复，21 张表内容与迁移记录逐表一致
+python3 scripts/smoke-dev-start.py
+PASS 自动升级四迁移旧库到八迁移/21 表、保留原有文章、页面与主题 API/SSR/群岛可用
+PASS 已升级开发库重复启动幂等，不重建页面、不覆盖已启用主题或文章
+python3 scripts/smoke-browser.py
+PASS Favicon 主页、按页面切换操作、评论取消/放弃草稿、黑色搜索弹窗、320px Dock、AJAX 节点与动画时间线连续
+PASS 禁用 moveBefore 的旧浏览器路径保持 Dock 节点、CSS 动画时间及弹窗监听
+PASS 浏览器局部导航、前进后退、评论提交、中文搜索、SEO 与公开页 axe 检查
+PASS 后台创建页面、草稿/发布/改址/导航排序/撤回/删除、页面 axe 与退出后隐藏管理入口
+```
+
+浏览器同时通过深浅主题、减少动态效果、320/360/768/1440/3840px 布局、随动目录、
+群岛刷新、Markdown/媒体/剪贴板、后台连续保存、点赞/审核及主题与背景配置。
+自定义页面选择 palette 后，公开 Dock 显示对应图标。评论取消历史返回时，
+URL、弹窗与输入均保留；确认放弃后可以正常前进/后退。搜索打开 400ms 后仍停留原文章。
+对新旧动画移动路径都检查同一 Dock/主页节点，并校验原动画已播放时间没有归零。
+人工查看文章、搜索与评论截图，摘要、黑色遮罩和 Dock 布局符合当前要求。
+部署已有环境须先应用第八条迁移或重新启动统一开发脚本完成自动迁移；本地通过不等于远程 CI。

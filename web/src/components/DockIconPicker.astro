@@ -1,0 +1,7 @@
+---
+import Icon from './ui/Icon.astro';
+import { pageIcons } from '../lib/dock-context';
+interface Props { value?: string }
+const { value = 'article' } = Astro.props;
+---
+<fieldset class="dock-icon-picker"><legend>Dock 图标</legend><div class="dock-icon-options">{pageIcons.map(([name, label]) => <label title={label}><input type="radio" name="dock_icon" value={name} checked={value === name} /><Icon name={name} /><span>{label}</span></label>)}</div></fieldset>

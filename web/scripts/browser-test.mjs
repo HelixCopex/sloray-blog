@@ -39,17 +39,19 @@ try {
   await audit();
   check(await page.locator('link[rel=canonical]').getAttribute('href') === 'http://localhost:4321/posts/browser-seed', 'runtime canonical');
   check(await page.locator('script[type="application/ld+json"]').count() === 1, 'JSON-LD missing');
+  await page.getByRole('button', {name:'评论',exact:true}).click();
   await page.locator('#guest-name').fill('浏览器读者');
   await page.locator('#comment-body').fill('浏览器提交的评论');
   await page.getByRole('button', {name:'提交评论',exact:true}).click();
   await page.getByText('评论已提交，审核通过后显示。', {exact:true}).waitFor();
+  await page.getByRole('button', {name:'关闭评论',exact:true}).click();
   await page.goBack();
   await page.getByRole('link', { name:'浏览器测试文章', exact:true }).waitFor();
   await page.goForward();
   await page.locator('.discussion[data-bound=true]').waitFor();
   check(await page.evaluate(() => window.__navigationProof) === 'persistent', 'history navigation reloaded page');
   await page.getByRole('link', { name:'搜索',exact:true }).click();
-  await page.locator('#search-q').fill('浏览器');
+  await page.locator('#search-dialog-q').fill('浏览器');
   await page.getByRole('button', {name:'搜索',exact:true}).click();
   await page.getByRole('link', {name:'浏览器测试文章',exact:true}).waitFor();
   await audit();
@@ -181,6 +183,7 @@ try {
   await page.locator('#body').fill('## 页面内容\n\n**通过后台创建**');
   await page.locator('[data-markdown-preview] strong').filter({hasText:'通过后台创建'}).waitFor();
   await page.locator('#nav-order').fill('-10');
+  await page.getByRole('radio', {name:'创作',exact:true}).check();
   await audit();
   await page.getByRole('button', {name:'保存草稿',exact:true}).click();
   await page.waitForURL(/\/admin\/pages\/[0-9a-f-]+$/);
@@ -193,7 +196,8 @@ try {
   await page.goto(origin + '/browser-page');
   await page.getByText('通过后台创建', {exact:true}).waitFor();
   await audit();
-  check(await page.locator('nav[aria-label="站点导航"] a').nth(1).getAttribute('href') === '/browser-page', 'page nav order ignored');
+  check(await page.locator('nav[aria-label="站点导航"] a').nth(2).getAttribute('href') === '/browser-page', 'page nav order ignored');
+  check(await page.getByRole('link',{name:'浏览器自定义页面',exact:true}).locator('svg').getAttribute('data-icon') === 'palette', 'custom page Dock icon lost');
   check((await context.request.get(origin + '/sitemap.xml')).ok(), 'page sitemap failed');
   await page.goto(editorUrl);
   await page.locator('#editor[data-bound=true]').waitFor();

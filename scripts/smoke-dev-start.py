@@ -42,7 +42,7 @@ with module.Objects() as objects, App() as app:
     previous_api = app.processes.pop()
     previous_api.terminate()
     previous_api.wait(timeout=12)
-    subprocess.run([str(ROOT / "target/debug/sloray"), "migrate", "down", "3"],
+    subprocess.run([str(ROOT / "target/debug/sloray"), "migrate", "down", "4"],
                    env=app.env, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     assert app.sql("SELECT count(*) FROM seaql_migrations") == "4"
     assert app.sql("SELECT to_regclass('pages') IS NULL AND to_regclass('themes') IS NULL") == "t"
@@ -52,7 +52,7 @@ with module.Objects() as objects, App() as app:
     app.wait(lambda: "worker 已持续运行" in Path(app.logs[-1].name).read_text())
     app.wait(lambda: app.request("/about", web=True)[0] == 200)
     assert app.request("/readyz", web=True)[0] == 200
-    assert app.sql("SELECT count(*) FROM seaql_migrations") == "7"
+    assert app.sql("SELECT count(*) FROM seaql_migrations") == "8"
     assert app.sql("SELECT count(*) FROM pg_tables WHERE schemaname='public'") == "21"
     assert app.request("/posts/launch-upgrade", web=True)[0] == 200
     assert app.json(f"/api/v1/admin/posts/{post['id']}")[2]["body_md"] == "**保留正文**"
@@ -76,7 +76,7 @@ with module.Objects() as objects, App() as app:
     island = re.search(r'/_server-islands/ThemeWorkbench\?[^"< ]+', html.decode()).group(0).replace("&amp;", "&")
     status, _, html = app.request(island, web=True, cookie=app.cookie)
     assert status == 200 and "开发启动主题" in html.decode()
-    print("PASS 自动升级四迁移旧库到七迁移/21 表、保留原有文章、页面与主题 API/SSR/群岛可用")
+    print("PASS 自动升级四迁移旧库到八迁移/21 表、保留原有文章、页面与主题 API/SSR/群岛可用")
     body = png()
     status, _, signed = app.json("/api/v1/admin/media/presign", "POST", {
         "content_type": "image/png", "size_bytes": len(body), "sha256": hashlib.sha256(body).hexdigest()})
@@ -111,7 +111,7 @@ with module.Objects() as objects, App() as app:
     process = app.spawn([str(ROOT / "scripts/dev-start.sh")], env)
     app.wait(lambda: "worker 已持续运行" in Path(app.logs[-1].name).read_text())
     app.wait(lambda: app.request("/posts/launch-upgrade", web=True)[0] == 200)
-    assert app.sql("SELECT count(*) FROM seaql_migrations") == "7"
+    assert app.sql("SELECT count(*) FROM seaql_migrations") == "8"
     assert app.sql("SELECT count(*) FROM pages WHERE slug='about'") == "1"
     assert app.json("/api/v1/theme", cookie=False)[2]["package"] == package
     assert app.json(f"/api/v1/admin/posts/{post['id']}")[2]["body_md"] == "**保留正文**"

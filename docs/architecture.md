@@ -58,7 +58,7 @@ Rust 网络依赖统一走 rustls；不用 OpenSSL/native-tls，也没有 git �
 
 原始 12 张业务表不改历史迁移；新增 expand 迁移增加
 `privacy_secrets`、`request_limits`、`search_settings`、`media_uploads`，
-另以 expand 迁移增加独立 `pages` 表，再以第六条 expand 迁移增加主题库与启用快照，另以第七条 expand 迁移增加站点标识，合计 20 张业务表，加 `seaql_migrations` 为 21 张表。
+另以 expand 迁移增加独立 `pages` 表，再以第六条 expand 迁移增加主题库与启用快照，另以第七条 expand 迁移增加站点标识，第八条 expand 迁移为 pages 增加受控 dock_icon 列，合计 20 张业务表，加 `seaql_migrations` 为 21 张表。
 
 | 数据 | 实现 |
 |---|---|
@@ -198,3 +198,8 @@ CI 使用 PostgreSQL 18 与匹配版本客户端，另有隔离 PITR job；
 
 响应式 Dock、首页线性区块与可刷新组件域见 [ADR-0021](adr/0021-responsive-dock-and-home-composition.md)。
 纯图标 Dock、SSR 随动目录与主题背景参数见 [ADR-0022](adr/0022-icon-dock-following-toc-and-background.md)。
+
+页面上下文 Dock 与弹窗架构见 [ADR-0023](adr/0023-contextual-dock-and-action-dialogs.md)。
+SSR 负责提供资源身份与可见操作，持久 Dock 以稳定动作键同步新页面，保留原有按钮节点与动画。
+搜索/评论使用原生 dialog；文章主要操作与后台编辑主要操作集中于 Dock。
+异步统计/点赞通过页面代次隔离，旧文章结果不能覆盖新文章状态；业务权限、审核、CSRF 与版本锁继续由 Rust 执行。

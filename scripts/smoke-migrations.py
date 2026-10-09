@@ -8,12 +8,15 @@ with App() as app:
     def cli(*args):
         return subprocess.check_output([str(ROOT/'target/debug/sloray'),'migrate',*args],env=app.env,text=True)
     status=cli('status')
-    assert status.count('Applied')==7,status
-    cli('down','7')
+    assert status.count('Applied')==8,status
+    cli('down','8')
     assert app.sql("SELECT count(*) FROM pg_tables WHERE schemaname='public'")=='1'
     cli('up')
     assert app.sql("SELECT count(*) FROM pg_tables WHERE schemaname='public'")=='21'
-    cli('down','1'); cli('up')
+    assert app.sql("SELECT column_default FROM information_schema.columns WHERE table_name='pages' AND column_name='dock_icon'") == "'article'::text"
+    cli('down','1')
+    assert app.sql("SELECT count(*) FROM information_schema.columns WHERE table_name='pages' AND column_name='dock_icon'") == '0'
+    cli('up')
     cli('fresh')
-    assert cli('status').count('Applied')==7
-    print('PASS 七条迁移 Applied；down all → up、down 1 → up、fresh，21 张表重建成功')
+    assert cli('status').count('Applied')==8
+    print('PASS 八条迁移 Applied；down all → up、down 1 → up、fresh，21 张表重建成功')

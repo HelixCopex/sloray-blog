@@ -1,6 +1,5 @@
 ---
 import { ClientRouter } from 'astro:transitions';
-import Icon from '../components/ui/Icon.astro';
 import icons from '../assets/material-icons.svg?raw';
 import { defaultTheme, themeCss, cssForStyle } from '../lib/theme.mjs';
 import Nav from '../components/Nav.astro';
@@ -8,13 +7,19 @@ import '../styles/global.css';
 import '../styles/dock.css';
 import '../styles/home.css';
 import '../styles/reading.css';
+import '../styles/page-motion.css';
+import ActionDialogs from '../components/ActionDialogs.astro';
+import type { DockContext } from '../lib/dock-context';
 
 interface Props {
   title: string;
   description?: string;
+  dockContext?: DockContext;
 }
 
 const { title, description = '记录、分享与讨论，在文字里连接想法。' } = Astro.props;
+const dockContext = Astro.props.dockContext ?? { kind: Astro.url.pathname === '/' ? 'home' : Astro.url.pathname === '/search' ? 'search' : Astro.url.pathname.startsWith('/admin') ? 'admin' : 'other' };
+const motion = { forwards: { old: { name: 'page-away', duration: '180ms', easing: 'cubic-bezier(.4,0,1,1)' }, new: { name: 'page-arrive', duration: '300ms', easing: 'cubic-bezier(.2,.8,.2,1)' } }, backwards: { old: { name: 'page-back-away', duration: '180ms', easing: 'cubic-bezier(.4,0,1,1)' }, new: { name: 'page-back-arrive', duration: '300ms', easing: 'cubic-bezier(.2,.8,.2,1)' } } };
 const theme = Astro.locals.theme ?? defaultTheme;
 const canonical = new URL(Astro.url.pathname, Astro.locals.publicSiteUrl ?? Astro.site ?? Astro.url.origin);
 const siteName = Astro.locals.siteIdentity?.site_name ?? '静线数据库';
@@ -23,7 +28,7 @@ const pageTitle = title.includes('静线数据库') ? title.replaceAll('静线�
 ---
 
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" transition:animate="none">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -42,6 +47,15 @@ const pageTitle = title.includes('静线数据库') ? title.replaceAll('静线�
       这些它都已经处理好了；自研版本几乎必然在"监听器重复绑定"和
       "岛屿组件状态丢失"上翻车。而且第三方 pjax 与它会争抢 history，不能共存。
     -->
+    <script is:inline>
+      // Register before the router module: window target listeners run in registration order.
+      if (!window.__slorayHistoryGuard) {
+        window.__slorayHistoryGuard = true;
+        window.addEventListener('popstate', event => {
+          if (!document.dispatchEvent(new CustomEvent('sloray:before-history', { cancelable: true, detail: event }))) event.stopImmediatePropagation();
+        });
+      }
+    </script>
     <ClientRouter />
     <style is:inline set:html={themeCss({ ...theme, css: '' })} />
     <style is:inline set:html={cssForStyle(theme.css ?? '')} />
@@ -52,14 +66,15 @@ const pageTitle = title.includes('静线数据库') ? title.replaceAll('静线�
     <Fragment set:html={icons} />
     <a class="skip-link" href="#content">跳到内容</a>
     <header class="site">
-      <a class="brand" href="/" title={siteName} aria-label={`${siteName}，返回首页`} aria-current={Astro.url.pathname === '/' ? 'page' : undefined}><span class="brand-mark"><Icon name="article" /></span><span class="brand-name">{siteName}</span></a>
-      <Nav />
+      <span class="site-title">{siteName}</span>
+      <Nav context={dockContext} />
     </header>
 
-    <main id="content" tabindex="-1">
+    <main id="content" tabindex="-1" transition:name="page-content" transition:animate={motion}>
       <slot />
     </main>
 
+    <ActionDialogs />
     <footer class="site">
       {theme.layout.footer}
     </footer>

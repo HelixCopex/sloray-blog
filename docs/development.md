@@ -264,3 +264,8 @@ CLI 管理见 [Astro 官方说明](https://docs.astro.build/en/reference/cli-ref
 
 Dock、站点标识与首页编排的隔离验收：`SLORAY_TEST_DATABASE_URL=... python3 scripts/smoke-experience.py`。
 完整手机/桌面交互和无障碍审计继续使用 `scripts/smoke-browser.py`，生成深色桌面、手机折叠和展开截图。
+
+页面 Dock、弹窗及图标迁移验收：先 `cargo build --locked` 和 `cd web && pnpm run build`，
+然后以 `SLORAY_TEST_DATABASE_URL` 指向测试服务运行 `scripts/smoke-pages.py`、
+`scripts/smoke-migrations.py` 和 `scripts/smoke-browser.py`。这些脚本使用独立临时数据库。
+浏览器回归覆盖持久节点/动画时间线、320px Dock、搜索先弹窗后切页、评论草稿取消离开、后台保存/发布/删除。

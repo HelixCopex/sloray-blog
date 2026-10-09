@@ -1,0 +1,20 @@
+---
+import Icon from './ui/Icon.astro';
+---
+<action-dialogs>
+  <dialog class="action-dialog" data-search-dialog aria-labelledby="search-dialog-title">
+    <div class="picker-heading"><h2 id="search-dialog-title">搜索</h2><button type="button" class="text" data-close-dialog aria-label="关闭搜索"><Icon name="close" /></button></div>
+    <form action="/search" method="get" data-search-form><label for="search-dialog-q">搜索内容</label><input id="search-dialog-q" name="q" type="search" required maxlength="200" autocomplete="off" placeholder="输入关键词，按 Enter 搜索" /><button type="submit"><Icon name="search" />搜索</button></form>
+  </dialog>
+  <dialog class="action-dialog" data-comment-dialog aria-labelledby="comment-dialog-title">
+    <div class="picker-heading"><h2 id="comment-dialog-title">评论</h2><button type="button" class="text" data-close-dialog aria-label="关闭评论"><Icon name="close" /></button></div>
+    <form data-comment>
+      <label for="guest-name">昵称</label><input id="guest-name" name="guest_name" required maxlength="80" autocomplete="nickname" />
+      <label for="comment-parent">回复对象</label><select id="comment-parent" name="parent_id"><option value="">文章</option></select>
+      <label for="comment-body">评论（提交后由作者审核）</label><textarea id="comment-body" name="body_md" required maxlength="4000" rows="6" />
+      <div class="honeypot" aria-hidden="true"><label for="comment-website">Website</label><input id="comment-website" name="website" tabindex="-1" autocomplete="off" /></div>
+      <button type="submit"><Icon name="comment" />提交评论</button>
+    </form><p data-comment-notice role="status" aria-live="polite"></p>
+  </dialog>
+</action-dialogs>
+<script>import '../lib/action-dialogs';</script>

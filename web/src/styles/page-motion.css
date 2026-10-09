@@ -1,0 +1,13 @@
+@keyframes page-away { to { transform: translateX(-3rem) scale(.985); } }
+@keyframes page-arrive { from { transform: translateX(3rem) scale(.985); } to { transform: none; } }
+@keyframes page-back-away { to { transform: translateX(3rem) scale(.985); } }
+@keyframes page-back-arrive { from { transform: translateX(-3rem) scale(.985); } to { transform: none; } }
+::view-transition-old(page-content),::view-transition-new(page-content) { mix-blend-mode: normal; }
+::view-transition-old(page-content) { visibility: hidden; }
+@media (prefers-reduced-motion: reduce) { ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*) { animation: none !important; } }
+@layer layout {
+  .action-dialog { width: min(36rem, calc(100% - 2rem)); box-shadow: 0 16px 80px rgb(0 0 0 / .5); }
+  .action-dialog::backdrop { background: rgb(0 0 0 / .85); }
+  @media (prefers-reduced-motion: no-preference) { .action-dialog[open] { animation: dialog-open .25s cubic-bezier(.2,.8,.2,1); } }
+  @keyframes dialog-open { from { transform: translateY(1rem) scale(.96); } to { transform: none; } }
+}

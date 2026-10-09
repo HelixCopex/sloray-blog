@@ -2,7 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { serverGet, ApiRequestError, type Page } from '../lib/api';
 import { renderArticle } from '../lib/render-markdown';
-import ReadingTools from '../components/islands/ReadingTools.astro';
+import ReadingProgress from '../components/islands/ReadingProgress.astro';
 import ReadingToc from '../components/islands/ReadingToc.astro';
 let page: Page | undefined;
 let content = '';
@@ -15,6 +15,6 @@ try {
   Astro.response.status = error instanceof ApiRequestError && error.status === 404 ? 404 : 503;
 }
 ---
-<BaseLayout title={page?.title ?? '页面不可用'} description={page?.summary}>
-  {page ? <article class="reading-page"><header class="reading-header"><h1>{page.title}</h1><ReadingTools minutes={Math.max(1, Math.ceil(page.body_md.length / 450))} /></header><div class="reading-layout"><div class="reading-content"><div class="prose" set:html={content} /></div><ReadingToc headings={headings} /></div></article> : <><h1>{Astro.response.status === 404 ? '页面不存在' : '页面暂时不可用'}</h1><p><a href="/">返回首页</a></p></>}
+<BaseLayout title={page?.title ?? '页面不可用'} description={page?.summary} dockContext={page ? { kind: 'page', id: page.id, slug: page.slug } : undefined}>
+  {page ? <article class="reading-page"><header class="reading-header"><h1>{page.title}</h1><p class="reading-summary">{page.summary}</p><ReadingProgress /></header><div class="reading-layout"><div class="reading-content"><div class="prose" set:html={content} /></div><ReadingToc headings={headings} /></div></article> : <><h1>{Astro.response.status === 404 ? '页面不存在' : '页面暂时不可用'}</h1><p><a href="/">返回首页</a></p></>}
 </BaseLayout>

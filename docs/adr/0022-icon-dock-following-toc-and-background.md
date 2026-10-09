@@ -1,6 +1,7 @@
 # ADR-0022：纯图标 Dock、随动目录与主题背景
 
 - 状态：已接受
+- 品牌入口与最小触控尺寸部分 Superseded by [ADR-0023](0023-contextual-dock-and-action-dialogs.md)。
 - 日期：2026-10-10
 - 部分取代 ADR-0021 的 Dock 可见文字和阅读目录布局，以及 ADR-0020 的预览图片资源限制。
 
