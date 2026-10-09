@@ -178,7 +178,7 @@ PITR 另需物理基础备份和完整连续 WAL；隔离演练验证恢复目�
 
 测试分为 Rust 单元/HTTP 测试、真实 PG 集成、真实 Chromium 交互与 axe、
 真实 Nginx 路径分流，以及隔离的发布/回滚与备份恢复。
-CI PostgreSQL 矩阵为 16/17/18，使用匹配版本客户端，另有隔离 PITR job；
+CI 使用 PostgreSQL 18 与匹配版本客户端，另有隔离 PITR job；
 实际本地执行的版本、输出与外部环境限制见 [验证记录](verification.md)。
 
 明确不做微服务、消息中间件、K8s、Redis、独立搜索引擎或 API 本地文件存储。

@@ -112,7 +112,7 @@ cd web && pnpm run api:check && pnpm run check && pnpm run build
 2 GB 主机使用 CARGO_JOBS=1 和 swap；新增媒体依赖后旧骨架的编译开销不能代表当前版本。
 详细 Nginx TLS、systemd、双 bucket 与恢复步骤见 [部署手册](docs/deployment.md)。
 
-CI 包含 Rust/前端/契约/依赖门禁、Postgres 16/17/18 集成验证、浏览器 a11y/SEO、
+CI 包含 Rust/前端/契约/依赖门禁、Postgres 18 集成验证、浏览器 a11y/SEO、
 部署回滚、真实 Nginx 分流、逻辑恢复和隔离 PITR。没有部署 Caddy 的依赖或步骤。
 本地通过与远程 GitHub Actions、真实 Debian VPS、线上 R2/Cloudflare 的验收是不同证据；
 已执行结果及限制如实记录在 verification.md。

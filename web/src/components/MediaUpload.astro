@@ -52,14 +52,14 @@
           media = await clientWrite<Media>('/admin/media', 'POST', { upload_id: signed.upload_id });
           context.stage = '图片处理';
           for (let i = 0; i < 60 && !media.ready; i++) {
-            notice.textContent = '上传完成，正在处理图片…';
+            notice.textContent = '原图已上传，等待后台生成图片…';
             await new Promise(resolve => setTimeout(resolve, 1000));
             if (!field.isConnected) return;
             media = await clientGet<Media>(`/admin/media/${media.id}`);
           }
         }
         context.stage = '检查图片就绪';
-        if (!media.ready) throw new MediaUploadError('图片仍在后台处理，可稍后到媒体管理页查看。', 'processing');
+        if (!media.ready) throw new MediaUploadError('原图已上传，但派生图尚未就绪。请确认后台图片处理服务（worker）已启动，并到媒体管理页查看结果。', 'processing');
         if (!media.variants.length) throw new MediaUploadError('请先在设置中配置媒体公开地址。', 'processing');
         notice.textContent = '图片已就绪。'; cover.hidden = false; insert.hidden = false;
       } catch (error) {

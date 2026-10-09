@@ -89,6 +89,38 @@ Debian 的服务端命令可能不在 PATH；脚本会查找 `/usr/lib/postgresq
 
 ## 3. 启动 API、前端并初始化
 
+推荐在第 2 节启动数据库后，用一个终端管理全部开发进程：
+
+```bash
+cd web
+pnpm install --frozen-lockfile
+cd ..
+./scripts/dev-start.sh
+```
+
+脚本构建 Rust 二进制，启动独立 API 和 Astro，API 的 `/readyz` 成功后再启动持续
+运行的 worker。首次访问 `http://127.0.0.1:4321/setup` 完成下面的初始化；等待就绪
+期间前端和 API 保持可用。另开终端用脚本显示的**同一份配置路径**读取 setup token：
+
+```bash
+SLORAY_CONFIG_FILE='<启动脚本显示的绝对配置路径>' cargo run --locked --bin sloray -- setup-token
+./scripts/dev-db.sh url
+```
+
+默认使用根目录 `.dev-cache/runtime/config.json`；如果仅有之前在 `web` 下创建的
+`web/.dev-cache/runtime/config.json`，直接复用它，不复制配置或创建新的站点。
+两份配置同时存在时必须用 `SLORAY_CONFIG_FILE` 明确选择；显式相对路径以调用脚本
+时的目录为准。API 和 worker 共用这个绝对路径，Rust 命令在仓库根目录运行，
+因此也共用根目录 `.env` 的覆盖规则。
+
+日志追加到 `.dev-cache/dev/{api,web,worker}.log`，新日志权限为 0600。
+Ctrl+C 停止本次启动的全部进程及子进程；服务意外退出也会停止其余进程并提示日志路径。
+端口占用时拒绝启动，不终止旧开发终端；先停止之前手动启动的 API / Astro 再执行脚本。
+数据库由第 2 节单独管理，脚本退出不会停库。修改数据库、S3 或 CDN 设置后重启
+脚本，因为持续运行的 worker 在启动时读取配置。
+
+也可以按以下方式用三个独立终端启动。
+
 **终端 A，仓库根目录**：
 
 ```bash
@@ -119,18 +151,25 @@ pnpm run dev
 Astro dev 的 `/api`、`/login`、`/logout`、`/setup`、`/admin/settings` 与探针请求
 代理到 API，其它页面由 Astro SSR 渲染。不要把 API 8080 当作完整前端地址。
 
-**可选终端 C，仓库根目录**：
+**终端 C，仓库根目录（媒体、定时发布及 outbox 必需）**：
 
 ```bash
 SLORAY_CONFIG_FILE="$PWD/.dev-cache/runtime/config.json" cargo run --locked --bin sloray -- worker
 ```
 
-worker 负责定时发布、媒体派生和 outbox；使用与 serve 完全相同的配置路径。
+worker 负责定时发布、媒体派生和 outbox；完成初始化后启动，使用与 serve 完全相同的配置路径。
+仅运行 serve 不会执行这些任务：原图可成功进入私有桶，但不会生成公开 WebP。
 关闭开发环境时在三个终端按 Ctrl+C，再执行 `./scripts/dev-db.sh stop`。
 Astro 7 若被显式或代理工具以后台方式启动，在 web 使用
 `pnpm exec astro dev status`、`pnpm exec astro dev logs` 和 `pnpm exec astro dev stop` 管理。
 
 ## 4. 自定义端口与配置
+
+统一启动脚本的自定义端口示例（两个端口均只监听回环）：
+
+```bash
+SLORAY_DEV_API_PORT=18080 SLORAY_DEV_WEB_PORT=14321 ./scripts/dev-start.sh
+```
 
 API 端口变化时，两侧使用一致地址：
 
@@ -170,13 +209,19 @@ Astro 的 web/.env 由开发工具加载；数据库密码和 S3 密钥不需要
 
 ```bash
 python3 scripts/test-dev-db.py
+python3 scripts/test-dev-start.py
 cargo build --locked --bin sloray
 SLORAY_TEST_DATABASE_URL="$(./scripts/dev-db.sh url)" python3 scripts/smoke-dev.py
+SLORAY_TEST_DATABASE_URL="$(./scripts/dev-db.sh url)" python3 scripts/smoke-dev-start.py
 ```
 
 test-dev-db 使用临时隔离集群并在结束停止，不修改当前开发库。
+test-dev-start 使用临时目录、模拟业务进程及真实 HTTP/进程组，验证共用配置、等待就绪、
+Ctrl+C / 进程失败清理、端口冲突和配置歧义；不连接开发数据库或对象存储。
 smoke-dev 创建/删除独立测试库，检查真实 Astro dev 页面、Markdown、API/登录/设置代理，
 而不是仅检查端口或生产 build。测试用户须能创建数据库；项目开发角色已具备权限。
+smoke-dev-start 使用同样的隔离数据库及本地模拟对象存储，实际执行统一启动脚本，
+确认真实 Astro/API 代理、worker 自动生成 WebP 与停止后释放端口。
 另外的独立 SSR、浏览器、恢复测试与实际结果见 [verification.md](verification.md)。
 
 ## 6. 常见错误
@@ -189,6 +234,7 @@ smoke-dev 创建/删除独立测试库，检查真实 Astro dev 页面、Markdow
 | `password authentication failed` | 用错端口/集群或密码；重新取 dev-db.sh url，检查环境变量覆盖；不要重初始化已有数据目录 |
 | `address already in use` | 对应端口已被其它进程占用；检查现有服务，或按第 2/4 节更换端口，不终止未知进程 |
 | API 健康但 readyz=503 | 未初始化、数据库未启动或连接串不对；打开 /setup 或检查日志；healthz 只证明进程存活 |
+| 原图上传成功但一直未就绪，公开桶没有图片 | worker 未运行、用错配置或投递失败；使用 dev-start.sh 启动全部进程，检查 .dev-cache/dev/worker.log。修改存储设置后重启 worker |
 | `Failed to create the dev server app: require is not defined` | 旧配置将全量 noExternal 用于开发模式，导致 CommonJS 被当作 ESM 执行；当前修复只在 build 启用全量打包。停止旧 dev 进程，拉取修复，确认 Node ≥22.12，然后重新安装锁定依赖并启动 |
 | Astro 有端口但页面报错/无响应 | 查看 dev 终端或 astro dev logs；必须实际请求 /about 和 /setup，不能以启动提示代替验证 |
 | 点击登录/保存时代理连接失败 | API 未启动或代理端口不一致；从 4321/readyz 验证，检查 SLORAY_API_INTERNAL_URLS |

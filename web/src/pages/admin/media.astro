@@ -18,7 +18,7 @@ try {
   <p data-media-notice role="status" aria-live="polite"></p>
   {media ? <ul data-media-list>{media.map(item => <li data-id={item.id}>
     {item.variants.at(-1) && <img src={item.variants.at(-1)!.url} alt="已上传图片预览" width="160" loading="lazy" />}
-    <p><code>{item.id}</code> · {Math.ceil(item.size_bytes / 1024)} KiB · {item.ready ? '已就绪' : '正在处理（失败时请检查后台任务日志）'}</p>
+    <p><code>{item.id}</code> · {Math.ceil(item.size_bytes / 1024)} KiB · {item.ready ? '已就绪' : '原图已上传，等待生成图片（持续未就绪时请检查 worker 是否启动及其日志）'}</p>
     {item.variants.at(-1) && <a href={item.variants.at(-1)!.url} target="_blank" rel="noopener">打开图片</a>}
     <button type="button" data-delete>删除图片</button>
   </li>)}</ul> : <p role="alert">{Astro.response.status === 403 ? '只有管理员可以管理媒体。' : '媒体暂时不可用。'}</p>}

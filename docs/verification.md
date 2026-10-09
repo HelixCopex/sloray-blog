@@ -402,3 +402,66 @@ Complete!
 
 build 仍有此前记录的 5 条上游 MODULE_LEVEL_DIRECTIVE 警告，返回 0。
 本次未修改 R2 CORS、运行配置、数据库 schema 或版本号。
+
+## 10. 开发 worker 启动与 PostgreSQL 18 CI（2026-10-09）
+
+维护者成功上传原图后，页面持续显示处理中，公开桶没有派生图。检查运行进程仅有
+`sloray serve`，没有 worker；只读数据库查询显示媒体未 verified、无宽高/派生时间，
+media.generate 任务 attempts=0、last_error 为空，确认任务已入队但从未执行。
+使用运行中 API 的同一份 `web/.dev-cache/runtime/config.json` 执行一次 `worker --once`，
+返回 0。之后媒体 verified=true、width=884、height=1920、派生时间已写入；公开 CDN
+的 640px WebP HEAD 返回 `HTTP/2 200`、`content-type: image/webp`。
+维护者刷新媒体管理页后确认已恢复显示。未修改桶权限、CORS、凭据或原图。
+
+新增 `scripts/dev-start.sh` 管理独立 API/Astro/worker，等待 API 就绪后启动 worker，
+共用同一绝对配置路径；复用先前在 web 下创建的配置，两份配置同时存在时要求明确
+选择。日志位于私有开发缓存目录，Ctrl+C/子进程失败清理本次进程组，保留数据库。
+页面等待/超时提示明确原图已经上传，并提醒检查 worker。开发文档将 worker 从
+“可选”改为媒体、定时发布和 outbox 的必要进程，说明存储配置修改后的重启要求。
+
+CI 迁移/集成作业只使用 PostgreSQL 18 与 18 客户端，移除 16/17 的重复作业；
+全部原有集成测试和隔离 PITR 保留，并加入开发启动器的进程回归与真实媒体联动测试。
+运行时 PostgreSQL ≥16 的兼容要求保持不变。
+
+执行 `python3 scripts/test-dev-start.py`，临时目录中的真实 HTTP/进程组实测输出：
+
+```text
+PASS 旧 web 配置复用、API 就绪后启动 worker、Ctrl+C 清理进程及孙进程、日志私有权限
+PASS 相对路径共用配置、worker 失败停止全部服务、未输出配置密钥
+PASS 端口冲突及两份配置时明确拒绝启动，不接管既有进程
+```
+
+在 PostgreSQL 18.6 上使用隔离测试数据库、本地模拟对象存储执行
+`python3 scripts/smoke-dev-start.py`，实际调用统一启动脚本：
+
+```text
+PASS 统一启动真实 API/Astro/worker、同源代理、自动消费媒体任务及公开 WebP 可访问
+PASS 统一启动器 Ctrl+C 停止真实服务，API / Astro 端口均释放
+```
+
+执行 `python3 scripts/smoke-browser.py`，Chromium 上传与封面回归输出：
+
+```text
+PASS 浏览器局部导航、前进后退、评论提交、中文搜索、SEO 与公开页 axe 检查
+PASS 上传 HTTP/S3 错误与请求编号、网络/CORS 失败、API 失败阶段及诊断脱敏
+PASS HTML 登录、后台连续保存、跨域直传与封面展示、点赞、审核、删除媒体及管理页 axe 检查
+```
+
+提交前执行 fmt、clippy、workspace 测试（53 passed / 0 failed）、架构/依赖门禁、
+前端 api:check/check/build、ShellCheck、actionlint、发布切换/回滚及 `git diff --check`，
+均返回 0。输出摘录：
+
+```text
+Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.23s
+advisories ok, bans ok, licenses ok, sources ok
+结果：全部通过
+Result (28 files):
+- 0 errors
+- 0 warnings
+- 0 hints
+Server built in 877ms
+Complete!
+```
+
+build 仍有已记录的 5 条上游 MODULE_LEVEL_DIRECTIVE 警告，返回 0。
+本次未递增版本号，也未推进 main。

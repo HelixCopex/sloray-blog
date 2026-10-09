@@ -44,6 +44,10 @@ CDN zone/token 成对可选；未配置时公开图使用 no-cache，避免无�
 
 “登记成功”不等于“处理完成”；转换失败的媒体不会公开，任务保留并退避。
 查看 worker journal 与 outbox 的任务 ID、次数、available_at 排查。
+若原图已在私有桶、公开桶无 WebP 且任务 attempts=0，先检查 worker 是否运行：
+`serve` 仅提供 API，不消费 outbox。本地推荐 `./scripts/dev-start.sh` 一起启动 API、
+前端和 worker，共用同一配置；启动方式及日志路径见 [本地开发指南](development.md#3-启动-api前端并初始化)。
+保存 S3/CDN 设置后须重启持续运行的开发 worker；生产的 `worker --once` 每次重新读取配置。
 上传进度失败可重新选择文件重试，新许可不会覆盖原 key；未登记旧对象交 GC 处理。
 
 上传失败时展开“上传错误详情”，可查看失败阶段（许可/原图直传/登记/处理）、

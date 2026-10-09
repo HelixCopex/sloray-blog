@@ -260,6 +260,6 @@ setup 测试为每次运行创建并删除独立数据库，验证并发 token�
 
 
 其它真实数据库验证命令及实际输出集中在 [verification.md](verification.md)。
-CI 运行 setup、内容/SSR、评论/计数、搜索、媒体、逻辑恢复与浏览器测试，Postgres
-矩阵为 16/17/18，客户端与服务大版本匹配，PITR 另起隔离集群。
+CI 运行 setup、内容/SSR、评论/计数、搜索、媒体、逻辑恢复与浏览器测试；数据库
+使用 PostgreSQL 18，客户端与服务大版本匹配，PITR 另起隔离集群。
 CI 不部署主机，workflow 本身通过 actionlint 静态检查。

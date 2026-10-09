@@ -74,18 +74,15 @@ jobs:
         run: python3 scripts/check-api.py --base-ref "$BASE_REF"
 
   migrations:
-    name: 迁移（真实 Postgres 上 up / down / up）
+    name: 迁移（Postgres 18 上 up / down / up）
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     # 迁移的 DDL 必须在这里被真正执行过。
     # 本地没装 Postgres 时它是**不可验证**的，所以这个 job 不是可选项。
-    strategy:
-      matrix:
-        postgres: [16, 17, 18]
     services:
       postgres:
-        image: postgres:${{ matrix.postgres }}
+        image: postgres:18
         env:
           POSTGRES_USER: sloray
           POSTGRES_PASSWORD: sloray
@@ -109,7 +106,7 @@ jobs:
 
       - name: 安装匹配版本的 PostgreSQL 工具
         env:
-          PG_MAJOR: ${{ matrix.postgres }}
+          PG_MAJOR: 18
         run: scripts/ci-postgres-tools.sh
 
       - name: 应用迁移
@@ -140,10 +137,12 @@ jobs:
       - name: 安装前端依赖
         working-directory: web
         run: pnpm install --frozen-lockfile
-      - name: Astro 开发模式与同源代理
+      - name: Astro 开发模式、同源代理与 worker 启动
         env:
           SLORAY_TEST_DATABASE_URL: postgres://sloray:sloray@localhost:5432/sloray
-        run: python3 scripts/smoke-dev.py
+        run: |
+          python3 scripts/smoke-dev.py
+          python3 scripts/smoke-dev-start.py
       - name: 构建独立 SSR 产物
         working-directory: web
         run: pnpm run build
@@ -252,6 +251,8 @@ jobs:
         run: |
           for f in deploy/scripts/*.sh scripts/*.sh; do bash -n "$f"; done
           shellcheck deploy/scripts/*.sh scripts/*.sh
+      - name: 开发进程启动与清理
+        run: python3 scripts/test-dev-start.py
       - name: 发布包路径与链接检查
         run: python3 deploy/scripts/test-release-package.py
       - name: 发布切换与回滚
