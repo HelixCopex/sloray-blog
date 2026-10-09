@@ -158,3 +158,53 @@ a:focus-visible, input:focus-visible, button:focus-visible, textarea:focus-visib
 .cover { display: block; max-width: 100%; height: auto; margin-block: 1rem; }
 
 a { color: var(--accent); }
+
+[hidden] { display: none !important; }
+button, input, textarea, select { color: inherit; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+button { padding: .5rem .85rem; cursor: pointer; }
+button:hover, .button-link:hover { border-color: var(--accent); }
+button:disabled { opacity: .65; cursor: wait; }
+button[aria-pressed="true"], .button-link, form button[type="submit"] { color: var(--bg); background: var(--accent); border-color: var(--accent); }
+.button-link { display: inline-block; border: 1px solid; border-radius: 6px; padding: .5rem 1rem; text-decoration: none; }
+button.danger { color: var(--err); }
+main:has(.admin-shell) { max-width: 76rem; }
+.admin-bar, .admin-bar nav, .admin-account, .picker-heading, .editor-toolbar { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.admin-bar { justify-content: space-between; border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+.admin-bar nav a { padding: .4rem .8rem; text-decoration: none; border-radius: 6px; }
+.admin-bar a[aria-current="page"] { background: color-mix(in srgb, var(--accent) 12%, transparent); font-weight: 700; }
+.admin-account { color: var(--fg-muted); font-size: .9rem; }
+.content-list { padding: 0; list-style: none; }
+.content-list li { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.content-list .hint { margin: .25rem 0 0; font-size: .9rem; }
+.content-list li > a { flex-shrink: 0; }
+.markdown-editor { margin-block: 1rem; border: 1px solid var(--border); border-radius: 8px; padding: 1rem; }
+.editor-toolbar button { margin-top: 0; }
+.editor-columns[data-view="split"] { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.25rem; }
+.editor-columns textarea { font-family: ui-monospace, monospace; resize: vertical; }
+.preview-label { font-size: 1rem; margin: 1rem 0 .3rem; }
+[data-markdown-preview] { min-height: 10rem; max-height: 40rem; overflow: auto; padding: .6rem; border: 1px solid var(--border); border-radius: 6px; }
+.prose table { border-collapse: collapse; display: block; max-width: 100%; overflow: auto; }
+.prose td, .prose th { padding: .4rem .65rem; border: 1px solid var(--border); }
+.checkbox-label { display: flex; align-items: center; gap: .6rem; }
+form .checkbox-label input { width: auto; }
+.cover-picker { margin-block: 1rem; border: 1px solid var(--border); border-radius: 8px; }
+.cover-picker .cover { max-height: 180px; width: auto; }
+dialog { width: min(62rem, calc(100% - 2rem)); max-height: calc(100vh - 2rem); padding: 1.25rem; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--fg); }
+dialog::backdrop { background: rgb(0 0 0 / .5); }
+.picker-heading { justify-content: space-between; }
+.picker-heading h2, .picker-heading h3 { margin-block: .5rem; }
+[data-media-picker] input, [data-media-picker] textarea { padding: .5rem; width: 100%; }
+[data-media-picker] label { display: block; margin-top: .6rem; }
+[data-media-picker] fieldset { margin: .75rem 0 1.5rem; border: 1px solid var(--border); border-radius: 8px; }
+[data-media-picker] progress { display: block; width: 100%; margin-top: .5rem; }
+[data-media-error-details] { white-space: pre-wrap; overflow-wrap: anywhere; }
+.media-grid { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
+.media-grid li { padding: .7rem; border: 1px solid var(--border); border-radius: 8px; }
+.media-grid li > button { width: 100%; margin: .3rem 0; }
+.media-image img { display: block; width: 100%; height: 140px; object-fit: contain; margin-bottom: .5rem; }
+@media (max-width: 720px) {
+  .editor-columns[data-view="split"] { grid-template-columns: minmax(0, 1fr); }
+  .markdown-editor { padding: .75rem; }
+  .admin-bar nav { gap: .2rem; }
+  main { padding-inline: 1rem; }
+}

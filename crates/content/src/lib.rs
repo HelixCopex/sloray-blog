@@ -4,6 +4,8 @@
 pub mod activity_dto;
 pub mod comments;
 pub mod dto;
+pub mod page_dto;
+pub mod pages;
 mod pagination;
 pub mod posts;
 mod query;

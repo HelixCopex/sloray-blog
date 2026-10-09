@@ -8,6 +8,10 @@ export type WritePost = components['schemas']['WritePost'];
 export type Revision = components['schemas']['Revision'];
 export type RevisionPage = components['schemas']['RevisionPage'];
 export type Session = components['schemas']['Session'];
+export type Page = components['schemas']['Page'];
+export type PageList = components['schemas']['PageList'];
+export type PageSummary = components['schemas']['PageSummary'];
+export type WritePage = components['schemas']['WritePage'];
 export const API_PREFIX = '/api/v1';
 export interface Pong { pong: boolean; version: string }
 export interface ApiErrorBody { error: { code: string; message: string } }

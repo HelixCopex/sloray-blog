@@ -1,40 +1,17 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import MediaPicker from '../../components/MediaPicker.astro';
 import { serverGet, type Session } from '../../lib/api';
-import type { components } from '../../lib/schema';
-Astro.response.headers.set('Cache-Control', 'no-store');
 const cookie = Astro.request.headers.get('cookie') ?? '';
-let media: components['schemas']['Media'][] | undefined;
+let admin = false;
 try {
   const session = await serverGet<Session>('/auth/session', { headers: { cookie } });
   if (!session.user) return Astro.redirect('/login');
-  if (session.user.role !== 'admin') { Astro.response.status = 403; }
-  else media = await serverGet('/admin/media', { headers: { cookie } });
+  admin = session.user.role === 'admin';
+  if (!admin) Astro.response.status = 403;
 } catch { Astro.response.status = 503; }
 ---
-<BaseLayout title="媒体管理">
-  <h1>媒体管理</h1><p><a href="/admin/posts" data-astro-prefetch="false">返回写作</a> · <a href="/admin/posts/new" data-astro-prefetch="false">写文章并上传图片</a></p>
-  <p>展示最近 100 张图片。删除会移除文章封面，并清理公开派生图；正文中的旧图片链接需要在编辑器中移除。</p>
-  <p data-media-notice role="status" aria-live="polite"></p>
-  {media ? <ul data-media-list>{media.map(item => <li data-id={item.id}>
-    {item.variants.at(-1) && <img src={item.variants.at(-1)!.url} alt="已上传图片预览" width="160" loading="lazy" />}
-    <p><code>{item.id}</code> · {Math.ceil(item.size_bytes / 1024)} KiB · {item.ready ? '已就绪' : '原图已上传，等待生成图片（持续未就绪时请检查 worker 是否启动及其日志）'}</p>
-    {item.variants.at(-1) && <a href={item.variants.at(-1)!.url} target="_blank" rel="noopener">打开图片</a>}
-    <button type="button" data-delete>删除图片</button>
-  </li>)}</ul> : <p role="alert">{Astro.response.status === 403 ? '只有管理员可以管理媒体。' : '媒体暂时不可用。'}</p>}
-</BaseLayout>
-<script>
-  import { clientWrite } from '../../lib/api';
-  document.addEventListener('astro:page-load', () => {
-    const list = document.querySelector<HTMLElement>('[data-media-list]');
-    if (!list || list.dataset.bound) return;
-    list.dataset.bound = 'true';
-    list.querySelectorAll<HTMLButtonElement>('[data-delete]').forEach(button => button.addEventListener('click', async () => {
-      if (!confirm('删除图片并移除使用它的文章封面？')) return;
-      button.disabled = true;
-      const item = button.closest<HTMLElement>('li')!;
-      try { await clientWrite(`/admin/media/${item.dataset.id}`, 'DELETE', {}); item.remove(); }
-      catch (error) { document.querySelector('[data-media-notice]')!.textContent = String(error); button.disabled = false; }
-    }));
-  });
-</script>
+<AdminLayout title="媒体管理">
+  <h1>媒体管理</h1>
+  {admin ? <MediaPicker inline /> : <p role="alert">{Astro.response.status === 403 ? '只有管理员可以管理媒体。' : '媒体暂时不可用。'}</p>}
+</AdminLayout>

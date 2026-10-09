@@ -152,6 +152,7 @@ jobs:
         run: |
           python3 scripts/smoke-migrations.py
           python3 scripts/smoke-content.py
+          python3 scripts/smoke-pages.py
           python3 scripts/smoke-activity.py
           python3 scripts/smoke-search.py
           python3 scripts/smoke-media.py

@@ -14,7 +14,7 @@ const devApi = process.env.SLORAY_API_INTERNAL_URLS?.split(',')[0]?.trim()
  * （见页面里的 Cache-Control 设置与 deploy/nginx/sloray.conf）。
  *
  * `output: 'server'` 让所有页面默认 SSR；少数纯静态页
- * （about、404 等）用 `export const prerender = true` 单独静态化。
+ * （404 等）用 `export const prerender = true` 单独静态化；普通页面由后台维护。
  */
 export default defineConfig({
   output: 'server',

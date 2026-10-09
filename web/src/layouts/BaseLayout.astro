@@ -1,7 +1,6 @@
 ---
 import { ClientRouter } from 'astro:transitions';
 import Nav from '../components/Nav.astro';
-import NavStatus from '../components/NavStatus.astro';
 import '../styles/global.css';
 
 interface Props {
@@ -37,7 +36,6 @@ const canonical = new URL(Astro.url.pathname, Astro.locals.publicSiteUrl ?? Astr
     <header class="site">
       <span class="brand">静线数据库</span>
       <Nav />
-      <NavStatus />
     </header>
 
     <main>

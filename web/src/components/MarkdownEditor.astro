@@ -1,0 +1,62 @@
+---
+import { renderMarkdown } from '../lib/render-markdown';
+interface Props { value?: string }
+const { value = '' } = Astro.props;
+const content = await renderMarkdown(value);
+---
+<div class="markdown-editor" data-markdown-editor>
+  <div class="editor-toolbar" aria-label="编辑器视图">
+    <button type="button" data-view="edit" aria-pressed="false">只编辑</button>
+    <button type="button" data-view="preview" aria-pressed="false">只预览</button>
+    <button type="button" data-view="split" aria-pressed="true">分栏</button>
+    <span class="hint" data-preview-notice role="status" aria-live="polite"></span>
+  </div>
+  <div class="editor-columns" data-editor-columns data-view="split">
+    <div data-edit-panel><label for="body">正文（Markdown）</label><textarea id="body" name="body_md" rows="22">{value}</textarea></div>
+    <section data-preview-panel aria-label="Markdown 预览"><h2 class="preview-label">正文预览</h2><div class="prose" data-markdown-preview set:html={content} /></section>
+  </div>
+  <p class="hint">支持标题、列表、表格、代码块和图片。预览会随输入更新；媒体选择器中点击图片可复制 Markdown，粘贴到正文即可。</p>
+</div>
+<script>
+  import { clientGet, type Session } from '../lib/api';
+  document.addEventListener('astro:page-load', () => {
+    const editor = document.querySelector<HTMLElement>('[data-markdown-editor]');
+    if (!editor || editor.dataset.bound) return;
+    editor.dataset.bound = 'true';
+    const body = editor.querySelector<HTMLTextAreaElement>('#body')!;
+    const preview = editor.querySelector<HTMLElement>('[data-markdown-preview]')!;
+    const notice = editor.querySelector<HTMLElement>('[data-preview-notice]')!;
+    let timer: ReturnType<typeof setTimeout>;
+    let pending: AbortController | undefined;
+    let sequence = 0;
+    let csrf: string | undefined;
+    body.addEventListener('input', () => {
+      clearTimeout(timer); pending?.abort();
+      const current = ++sequence;
+      notice.textContent = '预览更新中…';
+      timer = setTimeout(async () => {
+        const controller = new AbortController(); pending = controller;
+        try {
+          csrf ??= (await clientGet<Session>('/auth/session', { signal: controller.signal })).csrf_token;
+          const response = await fetch('/admin/preview', { method: 'POST', credentials: 'same-origin', signal: controller.signal, headers: { 'content-type': 'application/json', 'x-csrf-token': csrf }, body: JSON.stringify({ body_md: body.value }) });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error?.message ?? '预览失败');
+          if (current !== sequence || !editor.isConnected) return;
+          preview.innerHTML = result.html;
+          notice.textContent = '预览已更新';
+        } catch (error) {
+          if (!controller.signal.aborted && current === sequence) notice.textContent = error instanceof Error ? error.message : '预览失败';
+        }
+      }, 350);
+    });
+    editor.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(button => button.addEventListener('click', () => {
+      editor.querySelectorAll('button[data-view]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+      const mode = button.dataset.view!;
+      editor.querySelector<HTMLElement>('[data-editor-columns]')!.dataset.view = mode;
+      editor.querySelector<HTMLElement>('[data-edit-panel]')!.hidden = mode === 'preview';
+      editor.querySelector<HTMLElement>('[data-preview-panel]')!.hidden = mode === 'edit';
+      if (mode !== 'preview') body.focus();
+    }));
+    document.addEventListener('astro:before-swap', () => { clearTimeout(timer); pending?.abort(); }, { once: true });
+  });
+</script>

@@ -1,5 +1,5 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
+import AdminLayout from '../../layouts/AdminLayout.astro';
 import { serverGet, type Session } from '../../lib/api';
 import type { components } from '../../lib/schema';
 type User = components['schemas']['User'];
@@ -14,8 +14,8 @@ try {
   users = await serverGet<User[]>('/admin/users', { headers: { cookie } });
 } catch { failed = true; Astro.response.status = 503; }
 ---
-<BaseLayout title="作者管理">
-  <h1>作者管理</h1><p>最多展示 1000 个账号。</p><p><a href="/admin/posts" data-astro-prefetch="false">返回写作</a></p>
+<AdminLayout title="账号管理">
+  <h1>账号管理</h1><p>单人使用时保留站长账号即可；需要协作时再创建作者。最多展示 1000 个账号。</p>
   {failed ? <p role="alert">服务暂时不可用。</p> : <ul>{users.map(user => <li>{user.display_name} · {user.email} · {user.role}</li>)}</ul>}
   <form id="create-user">
     <label for="user-name">昵称</label><input id="user-name" name="display_name" required maxlength="80" />
@@ -24,7 +24,7 @@ try {
     <label for="user-role">角色</label><select id="user-role" name="role"><option value="author">作者</option><option value="admin">管理员</option></select>
     <button>创建账号</button><p id="user-notice" role="status"></p>
   </form>
-</BaseLayout>
+</AdminLayout>
 <script>
   import { clientWrite } from '../../lib/api';
   document.addEventListener('astro:page-load', () => {

@@ -42,10 +42,13 @@ fn render_login(notice: Option<(&str, &str)>, email: &str) -> String {
 }
 
 /// `GET /login`
-pub async fn login_form(State(state): State<AppState>) -> Response {
+pub async fn login_form(State(state): State<AppState>, headers: HeaderMap) -> Response {
     // 还没配置就没法登录（认证要查数据库），直接送去 setup。
     if !state.is_configured().await {
         return Redirect::to("/setup").into_response();
+    }
+    if super::current_user(&state, &headers).await.is_some() {
+        return Redirect::to("/admin/posts").into_response();
     }
     html_response(render_login(None, ""), StatusCode::OK)
 }

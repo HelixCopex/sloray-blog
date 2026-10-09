@@ -465,3 +465,61 @@ Complete!
 
 build 仍有已记录的 5 条上游 MODULE_LEVEL_DIRECTIVE 警告，返回 0。
 本次未递增版本号，也未推进 main。
+
+## 11. 后台页面管理、Markdown 预览与媒体选择器（2026-10-09）
+
+普通页面改为 Postgres `pages` 内容，新增第五条 expand 迁移，默认 about 迁入数据库。
+管理员可创建/编辑/发布/撤回/改址/删除页面，设置导航显示和排序，sitemap 包含已发布页面。
+访客的两处写作入口均移除；直接访问 /login 登录后显示管理后台，后台按角色统一导航。
+文章与页面共用编辑器和服务端 Markdown 清洗；支持分栏预览、明确保存状态、快捷保存、
+未保存离开保护及通过媒体选择器上传/复用/复制 Markdown。封面从图片库选择和移除。
+
+执行 fmt、clippy（`--locked`）、workspace 测试、架构/依赖门禁、前端
+api:check/check/build、OpenAPI 引用/兼容性与生成漂移、actionlint、发布切换/回滚、
+`git diff --check`。workspace 共 54 项测试通过，实际门禁输出摘录：
+
+```text
+Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.87s
+advisories ok, bans ok, licenses ok, sources ok
+结果：全部通过
+PASS OpenAPI 本地引用与唯一 operationId
+PASS OpenAPI 向后兼容性检查
+Result (38 files):
+- 0 errors
+- 0 warnings
+- 0 hints
+Server built in 1.13s
+Complete!
+```
+
+在仅监听回环的临时 PostgreSQL 18.6 集群运行独立数据库测试：
+`smoke-pages.py`、`smoke-migrations.py`、`smoke-content.py`、`smoke-backup.py`，
+每项创建/删除隔离数据库。实际输出：
+
+```text
+PASS 页面管理员权限/CSRF、保留地址、版本冲突、游标、发布/改址/撤回/删除、导航和 sitemap
+PASS 页面 SSR 与 Markdown 预览一致、脚本/危险链接清洗、预览认证与长度限制、purge outbox
+PASS 五条迁移 Applied；down all → up、down 1 → up、fresh，18 张表重建成功
+PASS 文章创建/发布/标签/修订，未登录和缺少 CSRF 拒绝写入，旧版本更新返回 409
+PASS 会话与作者权限，公共详情支持 ETag/304
+PASS 无 node_modules 的 SSR 发布包、内网 API 故障切换、Markdown 清洗、SEO、后台登录和 HTML ETag
+PASS 撤回后旧 ETag 不会返回 304；软删除后后台和公开接口不可见
+PASS 0600 逻辑备份、SHA-256 校验、空库完整恢复，18 张表内容与迁移记录逐表一致
+```
+
+执行 `smoke-browser.py`，Chromium 与真实 API/独立 SSR、本地模拟对象存储和 worker
+完成端到端操作，移动宽度 390px 无横向溢出；公开页面、编辑器、媒体对话框与页面管理
+执行 axe，未发现所测 WCAG 标签范围的违规。浏览器返回与站内链接离开时取消提示会
+保留正文；定时发布要求日期，切到立即发布会清除未来日期。实际输出：
+
+```text
+PASS 浏览器局部导航、前进后退、评论提交、中文搜索、SEO 与公开页 axe 检查
+PASS 上传 HTTP/S3 错误与请求编号、网络/CORS 失败、API 失败阶段及诊断脱敏
+PASS Markdown 实时预览/分栏/清洗、未保存离开提示、移动布局、媒体复用与 Markdown 剪贴板及拒绝权限退路
+PASS 后台创建页面、草稿/发布/改址/导航排序/撤回/删除、页面 axe 与退出后隐藏管理入口
+PASS HTML 登录、后台连续保存、跨域直传与封面展示、点赞、审核、删除媒体及管理页 axe 检查
+```
+
+build 仍有既有的 5 条上游 MODULE_LEVEL_DIRECTIVE 警告，返回 0。
+临时集群在验证后停止；没有对现有开发/线上数据库执行迁移或使用真实对象存储。
+现有部署启用该功能需要先按正常发布流程执行 `sloray migrate up`；未递增版本号或发布。

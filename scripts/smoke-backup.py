@@ -19,9 +19,9 @@ with App() as app:
     app.sql(f'CREATE DATABASE "{name}" TEMPLATE template0 ENCODING \'UTF8\'',app.base)
     try:
         subprocess.check_call(['pg_restore','--exit-on-error','--no-owner','--no-privileges','--dbname',url,str(dump)],stdout=subprocess.DEVNULL)
-        for table in ['users','sessions','posts','post_revisions','tags','post_tags','comments','media','post_view_daily','post_stats','likes','outbox','request_limits','privacy_secrets','search_settings','media_uploads','seaql_migrations']:
+        for table in ['users','sessions','posts','post_revisions','tags','post_tags','comments','media','post_view_daily','post_stats','likes','outbox','request_limits','privacy_secrets','search_settings','media_uploads','pages','seaql_migrations']:
             sql=f'SELECT coalesce(jsonb_agg(row_to_json(t) ORDER BY row_to_json(t)::text)::text,\'[]\') FROM "{table}" t'
             assert app.sql(sql)==app.sql(sql,url),table
-        print('PASS 0600 逻辑备份、SHA-256 校验、空库完整恢复，17 张表内容与迁移记录逐表一致')
+        print('PASS 0600 逻辑备份、SHA-256 校验、空库完整恢复，18 张表内容与迁移记录逐表一致')
     finally:
         app.sql(f'DROP DATABASE "{name}" WITH (FORCE)',app.base)

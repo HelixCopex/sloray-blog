@@ -1,9 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { serverGet, ApiRequestError, type Post } from '../../lib/api';
-import { createMarkdownProcessor } from '@astrojs/markdown-remark';
-import { articleHeadings } from '../../lib/markdown';
-import rehypeSanitize from 'rehype-sanitize';
+import { renderMarkdown } from '../../lib/render-markdown';
 import type { components } from '../../lib/schema';
 let cover: components['schemas']['Media'] | undefined;
 import Discussion from '../../components/Discussion.astro';
@@ -11,8 +9,7 @@ let post: Post | undefined;
 let content = '';
 try {
   post = await serverGet<Post>(`/posts/${encodeURIComponent(Astro.params.slug ?? '')}`);
-  const processor = await createMarkdownProcessor({ rehypePlugins: [rehypeSanitize, articleHeadings] });
-  content = (await processor.render(post.body_md)).code;
+  content = await renderMarkdown(post.body_md);
   Astro.response.headers.set('Cache-Control', 'public, no-cache');
 } catch (error) {
   post = undefined;

@@ -7,6 +7,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
     try { context.locals.publicSiteUrl = (await serverGet<{ public_site_url: string | null }>('/site')).public_site_url ?? undefined; } catch { /* 未配置或暂不可达时使用构建地址。 */ }
   }
   const response = await next();
+  // 动态导航包含登录后的管理入口；共享缓存必须按 Cookie 区分 HTML。
+  if (!context.isPrerendered) response.headers.append('vary', 'Cookie');
   if (context.url.pathname.startsWith('/posts/') && response.status === 200) {
     const html = await response.text();
     const etag = `"${createHash('sha256').update(html).digest('hex')}"`;

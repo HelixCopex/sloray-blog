@@ -1,4 +1,4 @@
-use crate::routes::{activity, content, media, search, session, site, users};
+use crate::routes::{activity, content, media, search, session, site, site_pages, users};
 use utoipa::OpenApi;
 
 #[derive(OpenApi)]
@@ -14,6 +14,13 @@ use utoipa::OpenApi;
         content::update_post,
         content::delete_post,
         content::list_revisions,
+        site_pages::list,
+        site_pages::public_page,
+        site_pages::admin_list,
+        site_pages::detail,
+        site_pages::create,
+        site_pages::update,
+        site_pages::delete,
         session::session,
         activity::list,
         activity::create,

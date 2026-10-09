@@ -1,5 +1,5 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
+import AdminLayout from '../../layouts/AdminLayout.astro';
 import { serverGet, type Session } from '../../lib/api';
 import type { components } from '../../lib/schema';
 type CommentPage = components['schemas']['CommentPage'];
@@ -14,8 +14,8 @@ try {
   comments = await serverGet<CommentPage>(`/admin/comments?status=${encodeURIComponent(status)}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`, { headers: { cookie } });
 } catch { Astro.response.status = 503; }
 ---
-<BaseLayout title="评论审核">
-  <h1>评论审核</h1><p><a href="/admin/posts" data-astro-prefetch="false">返回写作</a></p>
+<AdminLayout title="评论审核">
+  <h1>评论审核</h1>
   <nav aria-label="评论状态"><a href="?status=pending">待审核</a> · <a href="?status=approved">已通过</a> · <a href="?status=spam">垃圾评论</a></nav>
   <p role="status" data-moderation-notice></p>
   {comments ? <ul data-moderation>{comments.items.map(comment => <li data-id={comment.id}>
@@ -23,7 +23,7 @@ try {
     <button data-status="approved">通过</button> <button data-status="spam">标记垃圾</button> <button data-status="pending">移回待审核</button>
   </li>)}</ul> : <p role="alert">评论暂时不可用。</p>}
   {comments?.next_cursor && <a href={`?status=${encodeURIComponent(status)}&cursor=${encodeURIComponent(comments.next_cursor)}`}>下一页</a>}
-</BaseLayout>
+</AdminLayout>
 <script>
   import { clientWrite } from '../../lib/api';
   document.addEventListener('astro:page-load', () => {

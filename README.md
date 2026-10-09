@@ -5,13 +5,14 @@ Rust（axum + SeaORM）+ Astro SSR 的动态博客，单台 VPS 原生部署，�
 启动项目先读 [开发指南](docs/development.md)；改代码前读 [架构](docs/architecture.md) 和
 [贡献指南](CONTRIBUTING.md) 和 [治理约定](AGENTS.md)，部署主机时读 [部署手册](docs/deployment.md)。
 专项说明：[中文检索](docs/search.md)、[媒体](docs/media.md)、[备份恢复](docs/backup.md)、
-[ADR](docs/adr/README.md)、[本地验证记录](docs/verification.md)。
+[管理后台](docs/admin.md)、[ADR](docs/adr/README.md)、[本地验证记录](docs/verification.md)。
 
 ## 功能
 
-文章/标签、Markdown 写作、草稿/发布/定时发布、修订与并发编辑保护；
+文章/标签、Markdown 写作与实时预览、草稿/发布/定时发布、修订与并发编辑保护；
+后台创建独立页面、导航显示与排序；直接通过 `/login` 登录后显示管理入口；
 数据库登录会话、作者权限和管理员账号创建；评论先审后发、回复、蜜罐与限流；
-中文全文搜索、去重浏览、幂等点赞；私有图片直传、公开 WebP 派生、封面与媒体删除。
+中文全文搜索、去重浏览、幂等点赞；私有图片直传、公开 WebP 派生、媒体选择与 Markdown 链接复制、封面与媒体删除。
 提供 RSS、sitemap、JSON-LD、运行时 canonical、局部导航与 HTTP ETag 重验证。
 
 Postgres 保存权威业务记录，外部对象操作经 outbox。原图与公开图使用不同 bucket，

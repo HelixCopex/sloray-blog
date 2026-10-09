@@ -62,6 +62,7 @@ fn render_settings(
         r#"{notice_html}
 <h1>设置</h1>
 <p class="sub">已登录：{who}（{role}）</p>
+<nav aria-label="后台导航"><a href="/admin/posts">文章</a> · <a href="/admin/pages">页面</a> · <a href="/admin/media">媒体</a> · <a href="/admin/comments">评论</a> · <a href="/admin/users">账号</a> · <a href="/admin/settings" aria-current="page">设置</a></nav>
 
 <form method="post" action="/admin/settings">
   <fieldset>

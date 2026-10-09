@@ -7,6 +7,7 @@ mod protection;
 pub mod search;
 pub mod session;
 pub mod site;
+pub mod site_pages;
 pub mod users;
 
 use axum::{
@@ -40,6 +41,7 @@ use crate::{AppError, state::AppState};
 pub fn build(state: AppState) -> Router {
     Router::new()
         .merge(content::router())
+        .merge(site_pages::router())
         .merge(activity::router())
         .merge(media::router())
         .route("/api/v1/site", get(site::site))

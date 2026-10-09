@@ -213,6 +213,9 @@ python3 scripts/test-dev-start.py
 cargo build --locked --bin sloray
 SLORAY_TEST_DATABASE_URL="$(./scripts/dev-db.sh url)" python3 scripts/smoke-dev.py
 SLORAY_TEST_DATABASE_URL="$(./scripts/dev-db.sh url)" python3 scripts/smoke-dev-start.py
+pnpm --dir web run build
+SLORAY_TEST_DATABASE_URL="$(./scripts/dev-db.sh url)" python3 scripts/smoke-pages.py
+SLORAY_TEST_DATABASE_URL="$(./scripts/dev-db.sh url)" python3 scripts/smoke-browser.py
 ```
 
 test-dev-db 使用临时隔离集群并在结束停止，不修改当前开发库。
@@ -223,6 +226,8 @@ smoke-dev 创建/删除独立测试库，检查真实 Astro dev 页面、Markdow
 smoke-dev-start 使用同样的隔离数据库及本地模拟对象存储，实际执行统一启动脚本，
 确认真实 Astro/API 代理、worker 自动生成 WebP 与停止后释放端口。
 另外的独立 SSR、浏览器、恢复测试与实际结果见 [verification.md](verification.md)。
+页面测试覆盖管理员权限、CSRF、版本、发布与撤回、导航、sitemap 和预览清洗；
+浏览器测试覆盖媒体选择器上传/复用/剪贴板、Markdown 预览和后台页面操作。使用说明见 [管理后台](admin.md)。
 
 ## 6. 常见错误
 
