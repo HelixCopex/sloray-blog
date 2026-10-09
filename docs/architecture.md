@@ -209,6 +209,11 @@ MD3 切页和图片内容属性见 [ADR-0024](adr/0024-material-motion-and-conte
 浏览器在保存前读取外部图片缺失尺寸，SSR 不访问任意图片 URL。图片解码只改变绘制状态，切页仅使用位移和透明度。
 
 后台持久导航与统一操作通知见 [ADR-0025](adr/0025-persistent-admin-chrome-and-operation-toasts.md)。
-Tab 位于正文动效外，快照取消尺寸插值；文章进度轨道透明，独立页面不渲染进度。
+Tab 位于正文动效外；文章进度轨道透明，独立页面不渲染进度。
 Astro 和 Rust 页面共享原生 Toast，完整导航后的反馈只使用一次性浏览器消息。
 图片保存优先读取媒体元数据，单张远端图片尺寸失败不阻断保存，并以警告 Toast 提醒补全。
+
+切页绘制按 [ADR-0026](adr/0026-sequential-live-content-motion.md) 使用真实 main 元素：
+加载成功后先完整滑出淡出，再由 ClientRouter 替换正文并滑入淡入，MD3 曲线且无缩放。
+before-swap 跳过浏览器快照，动态群岛按实际布局绘制；动画以 both 保持交接端点。
+中止导航和减少动态效果会恢复可见样式，旧导航回调不能取消新导航的动画。

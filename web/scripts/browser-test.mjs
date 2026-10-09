@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { testThemes } from './theme-browser.mjs';
 import { testExperience, testIdentity } from './experience-browser.mjs';
 import { testMotion } from './motion-browser.mjs';
+import { testNavigationMotion } from './navigation-motion.mjs';
 import { testAdminChrome } from './admin-experience.mjs';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
@@ -20,6 +21,7 @@ page.on('console', message => {
 });
 function check(value, message) { if (!value) throw new Error(message); }
 async function audit() {
+  await page.waitForFunction(() => !document.querySelector('#content[data-page-motion]'));
   await page.evaluate(() => Promise.all([...document.querySelectorAll('.toast')].flatMap(node => node.getAnimations().map(animation => animation.finished.catch(() => {})))));
   await page.evaluate(axeSource);
   const result = await page.evaluate(async () => window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a','wcag2aa','wcag21aa'] } }));
@@ -36,6 +38,7 @@ try {
   await page.emulateMedia({colorScheme:'light'});
   await testExperience(page, origin, audit);
   await testMotion(page, origin, audit);
+  await testNavigationMotion(page, origin);
   await page.evaluate(() => { window.__navigationProof = 'persistent'; });
   await page.getByRole('link', { name:'浏览器测试文章', exact:true }).click();
   await page.locator('.discussion[data-bound=true]').waitFor();

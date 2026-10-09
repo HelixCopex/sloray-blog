@@ -1,5 +1,6 @@
 import './image-loader';
 import './toast-runtime.js';
+import './page-motion';
 
 // One delegated listener survives ClientRouter navigation; ripples never capture input.
 document.addEventListener('pointerdown', event => {

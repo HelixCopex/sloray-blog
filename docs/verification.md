@@ -955,3 +955,70 @@ Zen 使用本机安装的 1.23.1b、原生 WebDriver BiDi 和独立临时 profil
 `/tmp/sloray-zen-media-transition.png` 与 `/tmp/sloray-zen-themes-transition.png`。
 可用 `SLORAY_TEST_ZEN=only` 单独执行 Zen 回归；该脚本仅关闭自己启动的测试浏览器。
 构建仍有既有上游 MDX/HAST MODULE_LEVEL_DIRECTIVE 提示，未执行远程 push CI 或发布。
+
+## 切页叠画与 Zen 压缩回归修复（2026-10-10）
+
+上一节的 Zen 验证不足：没有断言截图时动画确实暂停在中间位置，BiDi 截图也不能证明
+浏览器快照层的实际绘制。先前“切页快照无拉伸”的结论不能覆盖维护者报告的故障。
+重查原生动画发现旧、新快照同时可见；未指定 both 填充，新内容在延迟期提前显示，
+旧内容退出后又恢复可见。延迟加载的主题群岛还使快照高度与实际正文不一致。
+
+按 ADR-0026 改用真实 main 的串行动画：加载成功后 200ms 滑出淡出，替换后 350ms
+滑入淡入，保持 MD3 曲线、前进/返回方向与无缩放。跳过原生快照层，Dock 与后台 Tab
+继续持久化。退出和进入分别保持端点状态，中止导航恢复可见正文。
+
+新的 Chromium 回归冻结真实 Web Animations API 动画，断言时间、playState、MD3 曲线、
+交接透明度及旧正文断开。Zen 1.23.1b 使用独立临时 profile，将退出和进入分别暂停于
+120ms，并从 PNG 像素验证 240×64 标记保持原尺寸、未出现另一页的标记；标记的实际
+颜色也必须处于淡出或淡入状态，防止把最终页面误当中间帧。
+覆盖首页到文章、长文章返回首页、主题到账号、账号到主题、主题到媒体。
+主题群岛加载后仍保持预览高度；Dock 和后台 Tab 保持同一节点。
+人工查看主题退出及进入的原生截图，字体、表单和预览比例正常。
+
+跳过快照会按规范拒绝 ready Promise；在跳过前注册拒绝处理，避免未处理的
+“Transition was skipped”。实际 updateCallbackDone 仍由 Astro 观察，未隐藏换页错误。
+连续导航回归另覆盖没有原生 View Transitions 的兼容路径、退出/进入期间取消、
+减少动态效果及网络失败转完整导航前恢复正文。保留原生 API 的独立验证也通过同样的
+取消与失败恢复断言，pageerror 为 0，没有用测试拦截器处理原生 ready Promise。
+
+实际执行并退出 0：`cargo fmt --all -- --check`、
+`cargo clippy --locked --workspace --all-targets -- -D warnings`、
+`cargo test --locked --workspace`（各 crate 合计 63 项，0 失败）、
+`./scripts/check-architecture.sh`、web 的 `pnpm run api:check`、`test`、`check`、`build`，
+以及 `git diff --check`。本次没有 Rust、依赖或数据库迁移变更。
+实际输出摘录：
+
+```text
+ℹ tests 13
+ℹ pass 13
+ℹ fail 0
+Result (79 files):
+- 0 errors
+- 0 warnings
+- 0 hints
+[build] Complete!
+advisories ok, bans ok, licenses ok, sources ok
+结果：全部通过
+```
+
+在最终构建上使用 UUID 隔离数据库执行
+`SLORAY_TEST_ZEN=1 python3 scripts/smoke-browser.py`，退出 0。
+完整 Chromium/axe 与原生 Zen 回归实际输出包括：
+
+```text
+PASS 正文真实中间帧、串行退出/进入/交接无叠画、跳过快照、MD3 前进/返回无缩放、Dock 入场、图片聚焦/零漂移/减少动态效果/无 JS
+PASS 无原生 View Transitions 的 AJAX 单一正文、连续导航取消退出/进入、Dock 节点/时间线、减少动态效果与失败完整导航前恢复正文
+PASS 后台 Tab 持久且位于动效外、跳过快照、服务器图标、页面无进度/文章透明轨道、Toast 颜色/顶层、不可达图片不阻断保存
+PASS 主题群岛加载、CSS/布局预览、导入导出、启用快照、恢复删除、外观持久化及 360/768/1440px axe/布局审计
+PASS HTML 登录、后台连续保存、跨域直传与封面展示、点赞、审核、删除媒体及管理页 axe 检查
+PASS Zen serial home-post: departing 240×64, arriving 240×64, no stale pixels
+PASS Zen serial long-post-home: departing 240×64, arriving 240×64, no stale pixels
+PASS Zen serial themes-users: departing 240×64, arriving 240×64, no stale pixels
+PASS Zen serial users-themes: departing 240×64, arriving 240×64, no stale pixels
+PASS Zen serial themes-media: departing 240×64, arriving 240×64, no stale pixels
+PASS Zen 1.23.1b 公众/后台切页真实中间帧无重叠/压缩、长短正文原尺寸、后台 Tab/Dock 保持节点、Toast 顶层显示/弹窗内可点击
+```
+
+Zen 截图为 `/tmp/sloray-zen-{home-post,long-post-home,themes-users,users-themes,themes-media}-{departing,arriving}.png`；
+标记和长正文填充仅由测试注入。构建仍有既有上游 MDX/HAST MODULE_LEVEL_DIRECTIVE 提示。
+未执行远程 push CI 或发布。

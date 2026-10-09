@@ -32,6 +32,7 @@
 | [0023](0023-contextual-dock-and-action-dialogs.md) | 页面上下文 Dock、动作弹窗与持久切页 | 已接受 |
 | [0024](0024-material-motion-and-content-image-dimensions.md) | MD3 滑移淡入淡出、Dock 新动作与正文图片尺寸/聚焦加载 | 已接受 |
 | [0025](0025-persistent-admin-chrome-and-operation-toasts.md) | 后台持久 Tab、固定快照比例、图片保存退路与统一 Toast | 已接受 |
+| [0026](0026-sequential-live-content-motion.md) | 正文串行退出/进入、跳过快照与过渡中间帧验证 | 已接受 |
 
 配套文档：[deployment.md](../deployment.md)（部署手册）、
 [search.md](../search.md)（检索设计）、[media.md](../media.md)（媒体设计）。

@@ -6,15 +6,21 @@ export async function testMotion(page, origin, audit) {
   await page.goto(origin);
   await page.locator('site-dock[data-ready=true]').waitFor();
   await page.evaluate(() => {
-    window.__motionSnapshots = [];
+    window.__motionAnimations = []; window.__oldMain = document.getElementById('content');
+    const animate = Element.prototype.animate;
+    Element.prototype.animate = function(frames, options) {
+      const animation = animate.call(this, frames, options);
+      if (/^page-(back-)?(away|arrive)$/.test(options?.id ?? '')) {
+        animation.pause(); animation.currentTime = 100;
+        window.__motionAnimations.push({animation,element:this,id:options.id});
+      }
+      return animation;
+    };
+    window.__skippedSnapshots = [];
     const start = document.startViewTransition.bind(document);
     document.startViewTransition = (...args) => {
       const transition = start(...args);
-      transition.ready.then(() => {
-        const animations = document.getAnimations().filter(a => a instanceof CSSAnimation && /page-(back-)?(away|arrive)/.test(a.animationName));
-        window.__motionSnapshots.push(animations.map(a => ({name:a.animationName, timing:a.effect.getTiming(), frames:a.effect.getKeyframes()})));
-        window.__oldVisibility = getComputedStyle(document.documentElement,'::view-transition-old(page-content)').visibility;
-      });
+      transition.ready.then(() => window.__skippedSnapshots.push(false), () => window.__skippedSnapshots.push(true));
       return transition;
     };
     document.addEventListener('astro:after-swap', () => {
@@ -25,23 +31,42 @@ export async function testMotion(page, origin, audit) {
     });
   });
   await page.getByRole('link',{name:'浏览器测试文章',exact:true}).click();
+  await page.waitForFunction(() => document.getElementById('content').dataset.pageMotion === 'departing');
+  const away = await page.evaluate(() => { const a=window.__motionAnimations.at(-1).animation; return {timing:a.effect.getTiming(),frames:a.effect.getKeyframes(),state:a.playState,time:a.currentTime}; });
+  check(away.state === 'paused' && away.time === 100, 'departing middle frame was not frozen');
+  check(away.timing.duration === 200 && away.timing.easing === 'cubic-bezier(0.3, 0, 0.8, 0.15)' && away.timing.fill === 'both', 'outgoing MD3 curve or fill missing: ' + JSON.stringify(away));
+  check(await page.evaluate(() => window.__oldMain.isConnected && document.querySelectorAll('main').length === 1 && !document.querySelector('.discussion')), 'new page appeared before old page departed');
+  await page.screenshot({path:'/tmp/sloray-page-departing.png'});
+  await page.evaluate(() => window.__motionAnimations.at(-1).animation.currentTime = 200);
+  check(await page.locator('#content').evaluate(el => getComputedStyle(el).opacity === '0'), 'old page became visible at the handoff');
+  await page.evaluate(() => window.__motionAnimations.at(-1).animation.finish());
   await page.locator('.discussion[data-bound=true]').waitFor();
-  await page.waitForFunction(() => window.__motionSnapshots.length > 0);
-  const forward = await page.evaluate(() => window.__motionSnapshots[0]);
-  const away = forward.find(a => a.name === 'page-away'), arrive = forward.find(a => a.name === 'page-arrive');
-  check(away && arrive, 'page content slide/fade animations missing');
-  check(away.timing.duration === 200 && away.frames[0].easing === 'cubic-bezier(0.3, 0, 0.8, 0.15)', 'outgoing MD3 curve missing: ' + JSON.stringify(away));
-  check(arrive.timing.duration === 350 && arrive.frames[0].easing === 'cubic-bezier(0.05, 0.7, 0.1, 1)', 'incoming MD3 curve missing: ' + JSON.stringify(arrive));
+  await page.waitForFunction(() => document.getElementById('content').dataset.pageMotion === 'arriving');
+  const arrive = await page.evaluate(() => { const a=window.__motionAnimations.at(-1).animation; return {timing:a.effect.getTiming(),frames:a.effect.getKeyframes(),state:a.playState,time:a.currentTime}; });
+  check(arrive.state === 'paused' && arrive.time === 100, 'arriving middle frame was not frozen');
+  check(arrive.timing.duration === 350 && arrive.timing.easing === 'cubic-bezier(0.05, 0.7, 0.1, 1)' && arrive.timing.fill === 'both', 'incoming MD3 curve or fill missing: ' + JSON.stringify(arrive));
   check(away.frames.at(-1).opacity === '0' && arrive.frames[0].opacity === '0', 'page fade missing');
   check([...away.frames,...arrive.frames].every(f => !f.transform.includes('scale')), 'page still scales');
-  check(await page.evaluate(() => window.__oldVisibility === 'visible'), 'departing content is hidden');
+  check(await page.evaluate(() => !window.__oldMain.isConnected && document.querySelectorAll('main').length === 1), 'old content remained during arrival');
+  await page.waitForFunction(() => window.__skippedSnapshots.length > 0);
+  check(await page.evaluate(() => window.__skippedSnapshots.every(Boolean)), 'native snapshot overlay was not skipped');
+  await page.screenshot({path:'/tmp/sloray-page-arriving.png'});
+  await page.evaluate(() => window.__motionAnimations.at(-1).animation.currentTime = 0);
+  check(await page.locator('#content').evaluate(el => getComputedStyle(el).opacity === '0'), 'new page flashed before its entry');
+  await page.evaluate(() => window.__motionAnimations.at(-1).animation.finish());
+  await page.waitForFunction(() => !document.getElementById('content').dataset.pageMotion);
+  check(await page.locator('#content').evaluate(el => getComputedStyle(el).opacity === '1' && !el.style.opacity && !el.getAnimations().length), 'motion left content hidden or animated');
   check(await page.evaluate(() => window.__pendingDockActions.includes('like') && !window.__pendingDockActions.includes('home')), 'retained Dock actions were reanimated');
   await page.waitForFunction(() => window.__dockEnter?.some(a => a.name === 'dock-action-enter'));
   check(await page.evaluate(() => window.__dockEnter.find(a => a.name === 'dock-action-enter').frames[0].easing === 'cubic-bezier(0.05, 0.7, 0.1, 1)'), 'new Dock actions do not use MD3 easing');
   await page.waitForFunction(() => !document.querySelector('[data-dock-enter=active]'));
-  await page.goBack();
-  await page.waitForFunction(() => window.__motionSnapshots.length > 1);
-  check(await page.evaluate(() => window.__motionSnapshots[1].some(a => a.name === 'page-back-arrive')), 'history slide direction missing');
+  await page.evaluate(() => history.back());
+  await page.waitForFunction(() => window.__motionAnimations.at(-1).id === 'page-back-away');
+  check(await page.evaluate(() => window.__motionAnimations.at(-1).animation.effect.getKeyframes().at(-1).transform === 'translateX(48px)'), 'history departure direction missing');
+  await page.evaluate(() => window.__motionAnimations.at(-1).animation.finish());
+  await page.waitForFunction(() => window.__motionAnimations.at(-1).id === 'page-back-arrive');
+  check(await page.evaluate(() => window.__motionAnimations.at(-1).animation.effect.getKeyframes()[0].transform === 'translateX(-48px)'), 'history entry direction missing');
+  await page.evaluate(() => window.__motionAnimations.at(-1).animation.finish());
   await page.getByRole('link',{name:'浏览器测试文章',exact:true}).waitFor();
 
   const imageBytes = fs.readFileSync(process.env.SLORAY_BROWSER_IMAGE);
@@ -97,5 +122,5 @@ export async function testMotion(page, origin, audit) {
     check(await fallback.locator('.prose focus-image img').first().evaluate(img => getComputedStyle(img).opacity === '1' && img.naturalWidth === 400), 'no-JavaScript content image invisible');
   } finally { await fallbackContext.close(); }
   await page.goto(origin);
-  console.log('PASS MD3 前进/返回滑移淡入淡出、无缩放、Dock 新按钮缓动、图片原比例占位/聚焦/零漂移/失败、减少动态效果与无 JS');
+  console.log('PASS 正文真实中间帧、串行退出/进入/交接无叠画、跳过快照、MD3 前进/返回无缩放、Dock 入场、图片聚焦/零漂移/减少动态效果/无 JS');
 }

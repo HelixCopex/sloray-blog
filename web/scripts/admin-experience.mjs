@@ -7,17 +7,15 @@ export async function testAdminChrome(page, origin, audit) {
     const start = document.startViewTransition.bind(document);
     document.startViewTransition = (...args) => {
       const transition = start(...args);
-      transition.ready.then(() => {
-        window.__snapshotStyle = {group:getComputedStyle(document.documentElement,'::view-transition-group(page-content)').animationName,fit:getComputedStyle(document.documentElement,'::view-transition-new(page-content)').objectFit};
-      });
+      transition.ready.then(() => { window.__snapshotSkipped = false; }, () => { window.__snapshotSkipped = true; });
       return transition;
     };
   });
   await page.getByRole('navigation',{name:'后台导航'}).getByRole('link',{name:'媒体',exact:true}).click();
   await page.locator('[data-media-picker][data-bound=true]').waitFor({state:'attached'});
-  await page.waitForFunction(() => window.__snapshotStyle);
+  await page.waitForFunction(() => window.__snapshotSkipped !== undefined);
   check(await page.evaluate(() => window.__adminTabs === document.querySelector('.admin-bar') && !document.querySelector('#content').contains(window.__adminTabs)), 'admin tabs were animated or replaced');
-  check(await page.evaluate(() => window.__snapshotStyle.group === 'none' && window.__snapshotStyle.fit === 'contain'), 'snapshot dimensions still interpolate or stretch');
+  check(await page.evaluate(() => window.__snapshotSkipped), 'native screenshot overlay is still active');
   check(await page.getByRole('navigation',{name:'后台导航'}).getByRole('link',{name:'媒体',exact:true}).getAttribute('aria-current') === 'page', 'persistent admin tab state is stale');
   await page.getByRole('button',{name:'上传所选图片',exact:true}).click();
   await page.locator('.toast[data-kind=warning]').filter({hasText:'请先选择图片'}).waitFor();
@@ -49,5 +47,5 @@ export async function testAdminChrome(page, origin, audit) {
   check(await page.locator('#body').inputValue() === '![离线图片](/unreachable-test-image.png)', 'failed dimension lookup changed body');
   await page.unroute('**/unreachable-test-image.png');
   await page.goto(origin + '/admin/posts');
-  console.log('PASS 后台 Tab 持久且位于动效外、快照无尺寸插值、服务器图标、页面无进度/文章透明轨道、Toast 颜色/顶层、不可达图片不阻断保存');
+  console.log('PASS 后台 Tab 持久且位于动效外、跳过快照、服务器图标、页面无进度/文章透明轨道、Toast 颜色/顶层、不可达图片不阻断保存');
 }
