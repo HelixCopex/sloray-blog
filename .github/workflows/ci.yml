@@ -230,9 +230,20 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: actionlint@1.7.12
+      - name: 安装 actionlint（官方固定版本与校验和）
+        env:
+          ACTIONLINT_VERSION: 1.7.12
+        run: |
+          archive="$RUNNER_TEMP/actionlint.tar.gz"
+          curl --fail --silent --show-error --location --retry 3 --connect-timeout 10 --max-time 60 \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz" \
+            --output "$archive"
+          # 官方 v1.7.12 校验清单中的 linux_amd64 SHA-256；升级时同时更新。
+          printf '%s  %s\n' '8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8' "$archive" | sha256sum --check --strict
+          install -d "$RUNNER_TEMP/actionlint"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/actionlint" actionlint
+          echo "$RUNNER_TEMP/actionlint" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/actionlint/actionlint" --version
       - name: CI 流程静态检查
         run: actionlint
       - name: 安装验证工具
@@ -263,10 +274,21 @@ jobs:
           PG_MAJOR: 18
           PG_SERVER: 1
         run: scripts/ci-postgres-tools.sh
+      - name: PITR 等待与诊断回归检查
+        run: python3 scripts/test-pitr.py
       - name: 隔离 PITR 恢复演练
+        env:
+          SLORAY_PITR_LOG_DIR: ${{ runner.temp }}/pitr-logs
         run: python3 scripts/smoke-pitr.py
       - name: 本地开发数据库启动与重启
         run: python3 scripts/test-dev-db.py
+      - name: 保存 PITR 失败日志
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pitr-diagnostics
+          path: ${{ runner.temp }}/pitr-logs
+          if-no-files-found: ignore
 
   msrv:
     name: 最低 Rust 版本（1.94.1）

@@ -289,3 +289,66 @@ cargo deny --workspace --all-features --locked --config /tmp/sloray-mit-release-
 api:check、Astro check/build、ShellCheck、actionlint 和发布切换/回滚检查，均成功。
 check 输出 27 files / 0 errors / 0 warnings / 0 hints；build 成功，仍有 5 条已记录的上游警告。
 源文件列表未包含运行时配置、setup token、数据库目录、依赖缓存或编译产物。
+
+## 8. dev CI 安装与 PITR 竞态修复（2026-10-09）
+
+针对 dev 提交 `3a260b4` 的 CI：actionlint 不在 install-action 支持列表中，
+回退到 cargo-binstall 后找不到同名 Rust crate；改为下载官方 1.7.12 Linux amd64
+发行包，按官方校验清单固定 SHA-256，再安装到 runner 的 PATH。
+PITR 原脚本的 `00000000*` 不匹配 timeline 1 WAL，且数据库接受只读连接时
+恢复可能尚未完成；改为核对指定 WAL 的大小与 `.done` 标记，并有界等待自动提升。
+失败时保留命令 stderr、目标/WAL/恢复状态和两个集群日志，CI 上传诊断文件。
+
+实际执行 CI 中的下载/校验/安装脚本与 actionlint，输出：
+
+```text
+actionlint.tar.gz: OK
+1.7.12
+installed by downloading from release page
+built with go1.26.1 compiler for linux/amd64
+PASS CI 官方 actionlint 下载、固定 SHA-256 校验、PATH 安装与流程检查
+```
+
+执行 `python3 scripts/test-pitr.py`，5 项回归覆盖只读阶段后的提升等待、等待超时、
+错误 WAL/.backup/未完成或截断归档的拒绝、日志持久化及命令 stderr：
+
+```text
+Ran 5 tests in 0.002s
+OK
+```
+
+PostgreSQL 18.6 隔离 PITR 连续执行三次，三次均实际输出：
+
+```text
+PASS 物理基础备份 + WAL 归档 + recovery_target_time 恢复并提升；保留目标前记录，排除目标后记录
+```
+
+另在真实隔离集群中注入 0.1 秒的归档等待超时，确认抛出 TimeoutError，
+原始临时数据库清理后日志仍可读，且主库日志记录正常停止：
+
+```text
+PASS 真实 PG 归档超时注入：非零失败、日志保留、原始异常可见、隔离集群停止且数据清理
+```
+
+提交前执行 fmt、clippy（`--locked`）、workspace 测试（53 passed / 0 failed）、
+`./scripts/check-architecture.sh`、前端 api:check/check/build、ShellCheck、actionlint，
+以及发布切换/回滚、滚动发布、备份、发布包、Nginx 和开发数据库测试，均返回 0。
+本地 Nginx 测试通过 `NGINX_BIN=/tmp/nginx-1.30.5/objs/nginx` 使用已准备的二进制。
+实际门禁输出摘录：
+
+```text
+Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.32s
+advisories ok, bans ok, licenses ok, sources ok
+结果：全部通过
+Result (27 files):
+- 0 errors
+- 0 warnings
+- 0 hints
+Server built in 1.23s
+Complete!
+PASS GET 在一个 API 返回 503 时切到健康上游
+PASS 开发数据库首次初始化、TCP 密码连接、私有权限、重复启动与重启保留数据
+```
+
+Astro build 仍有此前记录的 5 条上游 MODULE_LEVEL_DIRECTIVE 警告，构建返回 0。
+本次只修复 CI/演练脚本和对应说明，未递增版本号。
