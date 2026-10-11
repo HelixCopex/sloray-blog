@@ -1,11 +1,17 @@
 import assert from 'node:assert/strict';
 
+async function waitSettingsDock(page, open) {
+  // setViewportSize resolves before the page's matchMedia change handler may run.
+  await page.waitForFunction(expected => document.querySelector('.settings-dock')?.open === expected, open);
+}
+
 async function responsive(page, audit, name) {
   for (const colorScheme of ['light', 'dark']) {
     await page.emulateMedia({colorScheme});
     for (const width of [1280, 390, 320]) {
       await page.setViewportSize({width, height:width === 1280 ? 900 : 844});
       if (name === 'settings') {
+        await waitSettingsDock(page, width === 1280);
         assert.equal(await page.locator('.settings-dock').evaluate(node => node.open), width === 1280, 'settings navigation must collapse on mobile');
         if (width !== 1280) {
           const toggle = page.locator('.settings-dock summary');
@@ -21,6 +27,7 @@ async function responsive(page, audit, name) {
     }
   }
   await page.setViewportSize({width:1280,height:720});
+  if (name === 'settings') await waitSettingsDock(page, true);
   await page.emulateMedia({colorScheme:'light'});
 }
 
@@ -98,10 +105,13 @@ export async function testSettingsDesign(page, origin, audit) {
   await page.goto(origin + '/admin/settings');
   await responsive(page, audit, 'settings');
   await page.setViewportSize({width:390,height:844});
+  await waitSettingsDock(page, false);
   await page.locator('.settings-dock summary').click();
   await page.setViewportSize({width:320,height:844});
   assert.ok(await page.locator('.settings-dock').evaluate(node => node.open), 'resizing within the mobile breakpoint lost the chosen navigation state');
   await page.setViewportSize({width:1280,height:720});
+  await waitSettingsDock(page, true);
+  await page.locator('.settings-nav a[href="/admin/media"]').waitFor({state:'visible'});
   assert.ok(await page.locator('.settings-nav a[href="/admin/media"]').isVisible(), 'returning to desktop hid navigation');
   await page.evaluate(() => localStorage.setItem('sloray-appearance', 'dark'));
   await page.reload();

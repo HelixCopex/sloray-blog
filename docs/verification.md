@@ -1140,3 +1140,51 @@ PASS Zen 1.23.1b 公众/后台切页真实中间帧无重叠/压缩、长短正�
 `/tmp/sloray-toasts-{light,dark}.png`。测试使用隔离 PostgreSQL 和对象服务，
 未验证真实 R2；没有依赖、数据库迁移或部署改动。
 构建仍有既有上游 MDX/HAST MODULE_LEVEL_DIRECTIVE 提示。未执行远程 push CI 或发布。
+
+## 设置页浏览器 CI 断点竞态修复（2026-10-11）
+
+`dev` 提交 `147d2c1baa5d2067655755220f6e1e20c74dc296` 的
+[push CI #7](https://github.com/HelixCopex/sloray-blog/actions/runs/38102354503)
+共八个作业，七个通过；失败发生在迁移作业的“浏览器交互与无障碍审计”步骤，
+迁移 up/down/up 和此前的真实数据库、SSR 验证均已通过。实际失败日志：
+
+```text
+AssertionError [ERR_ASSERTION]: settings navigation must collapse on mobile
+false !== true
+at responsive (.../web/scripts/forms-browser.mjs:9:16)
+at async testSettingsDesign (.../web/scripts/forms-browser.mjs:99:3)
+```
+
+测试在 `setViewportSize()` 返回后立即读取 `details.open`，而设置页通过
+`matchMedia('change')` 异步同步桌面/手机导航状态。完整本地回归也在同一断言失败，
+读取到手机切换前的 `true`。修复仅让测试通过 `waitForFunction` 等待目标展开状态，
+返回桌面后再等待导航链接可见；保留键盘、同一手机断点内用户选择、无 JS 和 axe
+断言，不增加固定延时，不修改产品代码、Toast、依赖、数据库或部署。
+
+实际执行并退出 0：`cargo fmt --all -- --check`、
+`cargo clippy --locked --workspace --all-targets -- -D warnings`、
+`cargo test --locked --workspace`、`./scripts/check-architecture.sh`，web 的
+`pnpm run api:check`、`test`、`check`、`build`，以及
+`node --check web/scripts/forms-browser.mjs` 和 `git diff --check`。
+使用隔离 PostgreSQL 与对象服务执行 `python3 scripts/smoke-browser.py`，退出 0，
+完整登录/设置/媒体/主题/公开阅读/后台 CRUD 回归通过。实际输出摘录：
+
+```text
+Rust tests: 63 passed; 0 failed
+ℹ tests 17
+ℹ pass 17
+ℹ fail 0
+Result (83 files):
+- 0 errors
+- 0 warnings
+- 0 hints
+advisories ok, bans ok, licenses ok, sources ok
+结果：全部通过
+PASS 设置页浅深色/320/390/1280px axe、手机导航折叠/键盘展开/断点同步/无 JS 可用、运行时配置原生保存、密钥留空与保存反馈
+PASS HTML 登录、后台连续保存、跨域直传与封面展示、点赞、审核、删除媒体及管理页 axe 检查
+```
+
+另用真实页面同步脚本与修复后的等待函数执行 100 次隔离断点切换；等待前有 99 次
+读取到旧状态，等待后全部通过，键盘切换、手机内保留手动状态和桌面可见性均正常。
+构建保留既有上游 MDX/HAST 提示。本节记录本地修复验证，远程修复 CI 结果以新提交的
+GitHub Actions run 为准。
