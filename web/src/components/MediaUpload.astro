@@ -1,10 +1,16 @@
 ---
 import Icon from './ui/Icon.astro';
 ---
-<fieldset id="media-upload">
-  <legend>上传图片</legend><p>支持 PNG、JPEG、WebP，最大 10 MiB。处理完成后点击媒体复制 Markdown。</p>
-  <label for="image-file">选择图片</label><input id="image-file" type="file" accept="image/png,image/jpeg,image/webp" />
-  <progress data-progress max="100" value="0" aria-label="上传进度" hidden />
+<section id="media-upload" class="media-upload" aria-labelledby="media-upload-title">
+  <div class="media-upload-heading"><h3 id="media-upload-title">上传图片</h3><p class="hint" id="media-file-help">可一次选择多张 PNG、JPEG、WebP，每张最大 10 MiB。</p></div>
+  <label for="image-file">选择图片</label>
+  <input id="image-file" class="media-file-input" type="file" accept="image/png,image/jpeg,image/webp" multiple aria-describedby="media-file-help media-file-selection" />
+  <div class="media-upload-actions">
+    <p class="hint" id="media-file-selection" data-file-selection>尚未选择图片</p>
+    <button type="button" class="filled" data-upload disabled><Icon name="upload" /><span data-upload-label>上传图片</span></button>
+  </div>
+  <p class="hint" data-upload-status role="status" hidden></p>
+  <progress data-progress max="100" value="0" aria-label="所选图片上传进度" hidden />
+  <ul class="media-upload-list" data-upload-list aria-label="所选图片上传状态" hidden></ul>
   <details data-media-error hidden><summary>上传错误详情</summary><pre data-media-error-details></pre></details>
-  <button type="button" data-upload><Icon name="upload" />上传所选图片</button>
-</fieldset>
+</section>

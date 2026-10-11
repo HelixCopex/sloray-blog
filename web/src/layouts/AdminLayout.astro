@@ -20,7 +20,7 @@ const links = [
   <div slot="chrome" class="admin-chrome">
     <div class="admin-bar" transition:persist="admin-tabs" transition:animate="none">
       <nav aria-label="后台导航">{links.map(link => <a href={link.href} aria-current={current.startsWith(link.href) ? 'page' : undefined} data-astro-prefetch="false" data-astro-reload={link.href === '/admin/settings' || undefined}><Icon name={link.icon} />{link.label}</a>)}</nav>
-      {session?.user && <div class="admin-account"><span>{session.user.display_name}</span><button type="button" data-logout><Icon name="logout" />退出登录</button></div>}
+      {session?.user && <div class="admin-account"><span>{session.user.display_name}</span><button type="button" class="text" data-logout><Icon name="logout" />退出登录</button></div>}
     </div>
   </div>
   <div class="admin-shell">

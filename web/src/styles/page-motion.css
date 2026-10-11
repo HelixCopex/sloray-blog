@@ -9,8 +9,7 @@
 /* ClientRouter swaps documents; page-motion animates main only, without screenshot overlays. */
 main[data-page-motion] { will-change: transform, opacity; }
 @layer layout {
-  .action-dialog { width: min(36rem, calc(100% - 2rem)); box-shadow: 0 16px 80px rgb(0 0 0 / .5); }
-  .action-dialog::backdrop { background: rgb(0 0 0 / .85); }
+  .action-dialog { width: min(36rem, calc(100% - 2rem)); }
   @media (prefers-reduced-motion: no-preference) { .action-dialog[open] { animation: dialog-open var(--md-duration-medium-1) var(--md-easing-emphasized-decelerate); } }
   @keyframes dialog-open { from { transform: translateY(1rem) scale(.96); } to { transform: none; } }
 }

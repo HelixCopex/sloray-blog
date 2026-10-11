@@ -156,7 +156,7 @@ fn render_setup(mode: SetupMode, notice: Option<(&str, &str)>, form: Option<&Set
     </p>
   </fieldset>
 
-  <button type="submit"><svg class="icon" aria-hidden="true"><use href='#mi-check'/></svg> 完成初始化</button>
+  <button type="submit" class="filled"><svg class="icon" aria-hidden="true"><use href='#mi-check'/></svg> 完成初始化</button>
 </form>"#,
         banner = banner,
         notice_html = notice_html,

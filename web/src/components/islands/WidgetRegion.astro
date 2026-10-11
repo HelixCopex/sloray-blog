@@ -8,7 +8,7 @@ const { row, index } = Astro.props;
 <section class="widget-region" aria-label={row.title || '首页小组件'}>
   {row.title && <h2>{row.title}</h2>}
   <div class="widget-grid">
-    {(row.widgets ?? []).map((widget, i) => <widget-card class="home-widget" data-source={`/fragments/widgets?row=${index}&widget=${i}`}>
+    {(row.widgets ?? []).map((widget, i) => <widget-card class="home-widget card-filled" data-source={`/fragments/widgets?row=${index}&widget=${i}`}>
       <div data-widget-content><HomeWidget server:defer widget={widget}><p slot="fallback" class="muted">正在载入小组件…</p></HomeWidget></div>
       <button type="button" class="icon-button text widget-refresh" disabled aria-label={`刷新${widget.title || '小组件'}`} data-widget-refresh><Icon name="refresh" /></button>
     </widget-card>)}

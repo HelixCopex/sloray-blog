@@ -25,6 +25,35 @@
 CSS 可使用 `.hero`、`.post-list`、`.post-card`、`.prose`、`header.site`、`footer.site`，
 或覆盖 `--reading-width`、`--surface`、`--radius` 等变量。
 管理员需要自行保持自定义样式的对比度、响应式布局和可访问性。
+
+## 控件与卡片
+
+公共页面、后台以及 Rust 渲染的登录、安装和设置页共享 Material 3 基础样式。
+控件显式声明操作层级，不能依赖 `submit` 或链接元素自动变成主按钮：
+
+| 样式 | 使用场景 |
+|---|---|
+| `filled` | 保存、上传、创建等当前流程的主要完成操作 |
+| `tonal` | 选择封面、启用主题等需要强调的次要操作，使用 secondary container 色彩角色 |
+| `outlined` | 中等强调的替代操作，背景透明 |
+| `text` | 刷新、关闭、卡片内操作等低强调动作 |
+| `elevated` | 仅在复杂背景上确实需要视觉分离时使用 |
+
+图标按钮使用 `icon-button` 与相应强调样式，提供描述动作的无障碍名称；Dock 延续原有导航和操作分组。
+普通控件至少保留 48px 点击目标，悬停/焦点/按下采用状态层，禁用态不触发悬停反馈。
+编辑器的编辑、预览、分栏使用连接式单选按钮组，选中态同时改变形状和颜色，保留 `aria-pressed`。
+按当前 M3 Expressive 规范替代旧分段按钮；手机保持单行，桌面限制最大宽度。
+
+卡片只组织单一主题的信息。默认 `card card-filled` 使用填充表面与 12px 圆角；
+需要边界时用 `card-outlined`，需要抬升时用 `card-elevated`，避免同时叠加边框和阴影。
+文章与首页小组件使用填充卡片；媒体库通过间距组织图片与操作，不再嵌套多层卡片。
+自定义主题仍可覆盖 `--radius`、`--secondary-container`、`--on-secondary-container` 和 elevation 变量。
+
+依据 Google 官方 [按钮规范](https://m3.material.io/components/buttons/guidelines)、
+[图标按钮规范](https://m3.material.io/components/icon-buttons/guidelines)、
+[卡片规范](https://m3.material.io/components/cards/guidelines)与
+[按钮组规范](https://m3.material.io/components/button-groups/guidelines)。
+FAB 只适合屏幕最重要的正向操作，因此不为每张卡片或工具栏动作另加浮动主按钮。
 主题只影响公开站点，登录、setup 与后台保持可访问的内置样式。
 Dock 中的外观图标可依次选择跟随系统、浅色、深色，保存在当前浏览器中。Dock 为纯图标，悬停提示和无障碍名称说明用途。
 

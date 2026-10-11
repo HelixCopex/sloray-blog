@@ -151,7 +151,7 @@ async function testDockActions(page, origin, audit) {
   await page.getByRole('link',{name:'搜索',exact:true}).click();
   await page.waitForTimeout(400);
   check(page.url().endsWith('/posts/browser-seed'), 'opening search navigated before confirmation');
-  check(await page.locator('[data-search-dialog]').evaluate(el => getComputedStyle(el,'::backdrop').backgroundColor) === 'rgba(0, 0, 0, 0.85)', 'search backdrop is not black');
+  check(await page.locator('[data-search-dialog]').evaluate(el => getComputedStyle(el,'::backdrop').backgroundColor) === 'rgba(0, 0, 0, 0.4)', 'search backdrop must use the shared black scrim');
   await audit();
   await page.screenshot({path:'/tmp/sloray-search-dialog.png'});
   await page.locator('#search-dialog-q').press('Escape');

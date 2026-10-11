@@ -43,6 +43,7 @@ class ThemeWorkbench extends HTMLElement {
       const container = this.querySelector('[data-library]')!; container.replaceChildren();
       themes.forEach(theme => {
         const button = document.createElement('button'); button.type = 'button'; button.textContent = theme.package.name;
+        button.className = selected?.id === theme.id ? 'tonal' : 'outlined';
         button.disabled = busy;
         button.setAttribute('aria-pressed', String(selected?.id === theme.id));
         button.addEventListener('click', () => { if (!dirty || confirm('放弃尚未保存的主题修改？')) load(theme.package, theme); });

@@ -17,6 +17,7 @@ export function homeComposer(form: HTMLFormElement) {
   };
   const button = (title: string, action: string, row: number, widget?: number) => {
     const el = document.createElement('button'); el.type = 'button'; el.textContent = title;
+    el.className = action.includes('remove') ? 'text danger' : 'text';
     el.dataset.action = action; el.dataset.row = String(row);
     if (widget !== undefined) el.dataset.widget = String(widget);
     return el;

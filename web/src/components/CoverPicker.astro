@@ -12,8 +12,8 @@ if (id) { try { cover = await serverGet(`/media/${id}`); } catch { /* 未就绪�
   <legend>文章封面</legend><input id="cover-media" name="cover_media_id" type="hidden" value={id ?? ''} />
   <LoadingImage data-cover-preview class="cover" src={cover?.variants.at(-1)?.url} alt="当前文章封面" width={cover?.width ?? undefined} height={cover?.height ?? undefined} hidden={!cover?.variants.length} />
   <p data-cover-status>{id ? '已选择封面。' : '尚未选择封面。'}</p>
-  {canChoose && <button type="button" data-open-media><Icon name="image" />从媒体库选择封面</button>}
-  <button type="button" data-clear-cover hidden={!id}><Icon name="close" />移除封面</button>
+  {canChoose && <button type="button" class="tonal" data-open-media><Icon name="image" />从媒体库选择封面</button>}
+  <button type="button" class="text" data-clear-cover hidden={!id}><Icon name="close" />移除封面</button>
 </fieldset>
 <script>
   import { notify } from '../lib/toast';

@@ -140,14 +140,15 @@ try {
   await transitionCase('/admin/themes','/admin/media','themes-media',{long:true});
   await command('browsingContext.navigate',{context,url:origin+'/admin/media',wait:'complete'});
   await wait(`!!document.querySelector('[data-media-picker][data-bound=true]')`);
-  await evaluate(`document.querySelector('[data-upload]').click(); true`);
-  await wait(`!!document.querySelector('.toast[data-kind=warning]')`);
+  const invalidSelection = `const input=document.querySelector('#image-file'), files=new DataTransfer(); files.items.add(new File(['test'],'invalid.txt',{type:'text/plain'})); input.files=files.files; input.dispatchEvent(new Event('change',{bubbles:true})); document.querySelector('[data-upload]').click(); true`;
+  await evaluate(invalidSelection);
+  await wait(`!!document.querySelector('.toast[data-kind=error]')`);
   check(await evaluate(`document.querySelector('toast-stack').matches(':popover-open')`),'Zen Toast 未处于顶层');
   await command('browsingContext.navigate',{context,url:origin+'/admin/posts/new',wait:'complete'});
   await wait(`!!document.querySelector('#editor[data-bound=true]')`);
-  await evaluate(`document.querySelector('[data-open-media]').click(); document.querySelector('[data-upload]').click(); true`);
-  await wait(`!!document.querySelector('.toast[data-kind=warning]')`);
-  check(await evaluate(`(() => { const button=document.querySelector('.toast[data-kind=warning] .toast-close'); const rect=button.getBoundingClientRect(); return document.elementFromPoint(rect.x+rect.width/2,rect.y+rect.height/2)===button; })()`),'Zen 弹窗内 Toast 被遮挡或变为 inert');
+  await evaluate(`document.querySelector('[data-open-media]').click(); ${invalidSelection}`);
+  await wait(`!!document.querySelector('.toast[data-kind=error]')`);
+  check(await evaluate(`(() => { const button=document.querySelector('.toast[data-kind=error] .toast-close'); const rect=button.getBoundingClientRect(); return document.elementFromPoint(rect.x+rect.width/2,rect.y+rect.height/2)===button; })()`),'Zen 弹窗内 Toast 被遮挡或变为 inert');
   console.log(`PASS Zen ${session.capabilities.browserVersion} 公众/后台切页真实中间帧无重叠/压缩、长短正文原尺寸、后台 Tab/Dock 保持节点、Toast 顶层显示/弹窗内可点击`);
   await command('session.end',{});
 } finally {

@@ -6,10 +6,10 @@ const { value = '' } = Astro.props;
 const content = await renderMarkdown(value);
 ---
 <div class="markdown-editor" data-markdown-editor>
-  <div class="editor-toolbar" aria-label="编辑器视图">
-    <button type="button" data-view="edit" aria-pressed="false"><Icon name="edit" />只编辑</button>
-    <button type="button" data-view="preview" aria-pressed="false"><Icon name="preview" />只预览</button>
-    <button type="button" data-view="split" aria-pressed="true"><Icon name="article" />分栏</button>
+  <div class="editor-toolbar connected-buttons" role="group" aria-label="编辑器视图">
+    <button type="button" class="connected-button" data-view="edit" aria-pressed="false"><Icon name="edit" />只编辑</button>
+    <button type="button" class="connected-button" data-view="preview" aria-pressed="false"><Icon name="preview" />只预览</button>
+    <button type="button" class="connected-button" data-view="split" aria-pressed="true"><Icon name="article" />分栏</button>
   </div>
   <div class="editor-toolbar writing-toolbar" aria-label="Markdown 格式">
     <button type="button" class="text" data-format="bold">粗体</button><button type="button" class="text" data-format="italic">斜体</button><button type="button" class="text" data-format="link">链接</button><button type="button" class="text" data-format="list">列表</button><button type="button" class="text" data-format="code">代码</button><span class="hint" data-word-count></span>

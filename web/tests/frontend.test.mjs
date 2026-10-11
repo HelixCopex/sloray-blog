@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 import ts from 'typescript';
 import { defaultTheme, themeCss, previewHtml, backgroundCss } from '../src/lib/theme.mjs';
 import { mediaMarkdown } from '../src/lib/media-markdown.mjs';
+import './media-upload-batch.test.mjs';
 const require = createRequire(import.meta.url);
 const codeUrl = code => 'data:text/javascript;base64,' + Buffer.from(code).toString('base64');
 // Compile using the project's existing TypeScript version; works on Node 22.12 without experimental loaders.

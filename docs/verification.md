@@ -1022,3 +1022,59 @@ PASS Zen 1.23.1b 公众/后台切页真实中间帧无重叠/压缩、长短正�
 Zen 截图为 `/tmp/sloray-zen-{home-post,long-post-home,themes-users,users-themes,themes-media}-{departing,arriving}.png`；
 标记和长正文填充仅由测试注入。构建仍有既有上游 MDX/HAST MODULE_LEVEL_DIRECTIVE 提示。
 未执行远程 push CI 或发布。
+
+## 多图上传与 Material 控件整理（2026-10-11）
+
+阅读项目架构、媒体、后台、主题与贡献文档，并核对 Material 官方按钮、图标按钮、
+卡片、连接式按钮组及无障碍指南。全站按操作强调程度显式使用填充、色调、描边、
+文字按钮；卡片使用填充、描边、抬升三种样式，取消重复的外框与悬浮缩放。
+编辑器切换使用连接式按钮组，保留 `aria-pressed`；操作目标至少 48px，保留键盘焦点
+与减少动态效果设置。规范来源列在 [主题文档](themes.md#控件与卡片)。
+
+媒体上传支持一次选择多张，每张独立校验和报告状态，全部原图先完成直传、登记，
+再等待派生图。单张失败不阻断后续图片，重试只包含失败项；已登记但处理超时的图片
+保留在媒体库。缩略图只显示图片与浅蓝色正方形底色，移除外框及可见复制标签，
+保留复制操作的无障碍名称。更新列表复用图片节点，避免重复解码和丢失键盘焦点；
+删除后的迟到轮询响应不能恢复已删除项。
+
+实际执行并退出 0：`cargo fmt --all -- --check`、
+`cargo clippy --locked --workspace --all-targets -- -D warnings`、
+`cargo test --locked --workspace`（合计 63 项，0 失败）、
+`./scripts/check-architecture.sh`、`cargo build --locked --bin sloray`、web 的
+`pnpm run api:check`、`test`、`check`、`build`，以及 `git diff --check`。
+实际输出摘录：
+
+```text
+ℹ tests 17
+ℹ pass 17
+ℹ fail 0
+Result (82 files):
+- 0 errors
+- 0 warnings
+- 0 hints
+[build] Complete!
+advisories ok, bans ok, licenses ok, sources ok
+结果：全部通过
+```
+
+最终构建使用 UUID 隔离数据库分别执行
+`python3 scripts/smoke-browser.py` 和
+`SLORAY_TEST_ZEN=only python3 scripts/smoke-browser.py`，均通过
+`SLORAY_TEST_DATABASE_URL` 提供本机 PostgreSQL 连接并退出 0。
+Chromium 回归覆盖三图上传中第二张失败、只重试失败项、图片节点及焦点保留、
+迟到轮询与删除竞态、键盘复制、桌面/手机布局和浅深色 axe 检查。
+另有单元测试覆盖处理轮询失败、轮询次数上限及离开页面后停止批次。
+完整已有浏览器回归继续通过，实际输出包括：
+
+```text
+PASS 多图上传、单张失败不中断、仅重试失败项、焦点/解码节点保留、删除轮询竞态、图片方形无边框与浅深色/手机 axe 检查
+PASS 主题群岛加载、CSS/布局预览、导入导出、启用快照、恢复删除、外观持久化及 360/768/1440px axe/布局审计
+PASS HTML 登录、后台连续保存、跨域直传与封面展示、点赞、审核、删除媒体及管理页 axe 检查
+PASS Zen 1.23.1b 公众/后台切页真实中间帧无重叠/压缩、长短正文原尺寸、后台 Tab/Dock 保持节点、Toast 顶层显示/弹窗内可点击
+```
+
+人工检查 `/tmp/sloray-media-{desktop,dark,mobile}.png`、
+`/tmp/sloray-media-picker.png`、`/tmp/sloray-media-picker-mobile.png` 和首页截图，
+确认图片无外框、操作层级与响应布局。浏览器使用隔离测试对象服务，未验证真实 R2；
+没有依赖、数据库迁移或部署改动。构建仍有既有上游 MDX/HAST
+MODULE_LEVEL_DIRECTIVE 提示。未执行远程 push CI 或发布。

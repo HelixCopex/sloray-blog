@@ -19,10 +19,10 @@ if (q.trim()) {
   <PageHeader title="搜索文章" />
   <form method="get" action="/search" role="search">
     <label for="search-q">关键词</label><input id="search-q" type="search" name="q" value={q} required maxlength="300" />
-    <button><Icon name="search" />搜索</button><p class="hint">支持引号短语、OR 和 -排除词。</p>
+    <button type="submit" class="filled"><Icon name="search" />搜索</button><p class="hint">支持引号短语、OR 和 -排除词。</p>
   </form>
   {failed && <p role="alert">搜索暂时不可用。</p>}
   {results?.relaxed && <p>精确结果较少，以下也包括部分关键词匹配。</p>}
-  {results && (results.items.length ? <ul class="post-list">{results.items.map(post => <li><article class="post-card"><h2><a href={`/posts/${encodeURIComponent(post.slug)}`}>{post.title}</a></h2><p>{post.summary}</p></article></li>)}</ul> : <p>没有找到相关的文章。</p>)}
+  {results && (results.items.length ? <ul class="post-list">{results.items.map(post => <li><article class="post-card card-filled"><h2><a href={`/posts/${encodeURIComponent(post.slug)}`}>{post.title}</a></h2><p>{post.summary}</p></article></li>)}</ul> : <p>没有找到相关的文章。</p>)}
   {results?.next_cursor && <a href={`?q=${encodeURIComponent(q)}&cursor=${encodeURIComponent(results.next_cursor)}`}>下一页</a>}
 </BaseLayout>

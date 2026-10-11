@@ -11,7 +11,7 @@ export interface UploadContext {
   headers?: Record<string, string>;
 }
 
-type FailureKind = 'http' | 'network' | 'timeout' | 'abort' | 'processing';
+type FailureKind = 'http' | 'network' | 'timeout' | 'abort' | 'processing' | 'validation';
 
 export class MediaUploadError extends Error {
   constructor(

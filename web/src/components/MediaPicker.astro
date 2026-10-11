@@ -5,18 +5,18 @@ interface Props { inline?: boolean; allowCover?: boolean }
 const { inline = false, allowCover = false } = Astro.props;
 ---
 {!inline && <dialog id="media-picker" aria-labelledby="media-picker-title">
-  <div class="picker-heading"><h2 id="media-picker-title">媒体选择器</h2><button type="button" data-close-media><Icon name="close" />关闭</button></div>
+  <div class="picker-heading media-picker-heading"><h2 id="media-picker-title">媒体选择器</h2><button type="button" class="icon-button text" data-close-media aria-label="关闭"><Icon name="close" /></button></div>
   <div data-media-picker data-allow-cover={String(allowCover)}><MediaUpload />
-    <div class="picker-heading"><h3>媒体库</h3><button type="button" data-refresh-media><Icon name="image" />刷新媒体</button></div>
-    <p class="hint">最近 100 张图片。点击图片复制 Markdown，返回正文粘贴即可；上传后会自动加入媒体库。</p>
+    <div class="picker-heading media-library-heading"><h3>媒体库</h3><button type="button" class="text" data-refresh-media><Icon name="refresh" />刷新媒体</button></div>
+    <p class="hint">最近 100 张图片 · 点击图片复制 Markdown，返回正文粘贴。</p>
     <label for="image-alt">图片说明（Markdown 替代文本）</label><input id="image-alt" value="图片" maxlength="200" />
     <ul class="media-grid" data-media-list></ul>
     <div data-copy-result hidden><label for="copied-markdown">Markdown 图片链接</label><textarea id="copied-markdown" data-markdown-copy readonly rows="2" /></div>
   </div>
 </dialog>}
 {inline && <div data-media-picker data-allow-cover="false" data-manage="true"><MediaUpload />
-  <div class="picker-heading"><h2>媒体库</h2><button type="button" data-refresh-media><Icon name="image" />刷新媒体</button></div>
-  <p class="hint">最近 100 张图片。点击图片复制 Markdown。删除会移除文章封面；正文中的旧链接需要手动移除。</p>
+  <div class="picker-heading media-library-heading"><h2>媒体库</h2><button type="button" class="text" data-refresh-media><Icon name="refresh" />刷新媒体</button></div>
+  <p class="hint">最近 100 张图片 · 点击图片复制 Markdown。删除会移除文章封面；正文中的旧链接需要手动移除。</p>
   <label for="image-alt">图片说明（Markdown 替代文本）</label><input id="image-alt" value="图片" maxlength="200" />
   <ul class="media-grid" data-media-list></ul>
   <div data-copy-result hidden><label for="copied-markdown">Markdown 图片链接</label><textarea id="copied-markdown" data-markdown-copy readonly rows="2" /></div>

@@ -29,7 +29,7 @@ fn render(value: &SiteIdentity) -> String {
 <label for="site_name">站点名称</label><input id="site_name" name="site_name" required maxlength="100" value="{}">
 <label for="favicon_url">Favicon 图片地址</label><input id="favicon_url" name="favicon_url" maxlength="2048" value="{}" placeholder="/favicon.svg 或 https://…/icon.webp">
 <p class="hint">可从媒体库复制公开图片地址。留空使用内置图标；名称同步到导航、页面标题和 RSS。</p>
-<button type="submit"><svg class="icon" aria-hidden="true"><use href="#mi-save"/></svg>保存站点标识</button>
+<button type="submit" class="filled"><svg class="icon" aria-hidden="true"><use href="#mi-save"/></svg>保存站点标识</button>
 </fieldset></form>"##,
         value.version,
         html::escape(&value.site_name),

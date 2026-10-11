@@ -26,15 +26,15 @@ try {
       <label for="slug">页面地址</label><input id="slug" name="slug" required maxlength="160" value={page?.slug} />
       <p class="hint">例如 about 对应 /about；使用文字、数字、短横线或下划线，不能使用 login、admin 等系统路径。</p>
       <label for="summary">页面摘要</label><textarea id="summary" name="summary" maxlength="1000">{page?.summary}</textarea>
-      <button type="button" data-open-media class="editor-action-fallback"><Icon name="image" />打开媒体选择器</button>
+      <button type="button" data-open-media class="tonal editor-action-fallback"><Icon name="image" />打开媒体选择器</button>
       <MarkdownEditor value={page?.body_md} />
       <label for="status">保存后状态</label><select id="status" name="status"><option value="draft" selected={!page || page.status === 'draft'}>草稿（仅后台可见）</option><option value="published" selected={page?.status === 'published'}>发布（立即公开）</option></select>
       <label class="checkbox-label" for="show-in-nav"><input type="checkbox" id="show-in-nav" name="show_in_nav" checked={page?.show_in_nav ?? true} />显示在站点导航中</label>
       <label for="nav-order">导航排序</label><input id="nav-order" name="nav_order" type="number" min="-2147483648" max="2147483647" required value={page?.nav_order ?? 0} /><p class="hint">数字越小越靠前；草稿始终不会出现在公开导航中。</p>
       <DockIconPicker value={page?.dock_icon} />
-      <button type="submit" class="editor-action-fallback"><Icon name="save" />保存</button>
+      <button type="submit" class="filled editor-action-fallback"><Icon name="save" />保存</button>
       <a class="editor-action-fallback" data-public-link href={page ? `/${encodeURIComponent(page.slug)}` : '#'} hidden={page?.status !== 'published'} target="_blank" rel="noopener">查看已发布页面</a>
-      {page && <button type="button" data-delete-content class="danger editor-action-fallback"><Icon name="delete" />删除页面</button>}
+      {page && <button type="button" data-delete-content class="text danger editor-action-fallback"><Icon name="delete" />删除页面</button>}
     </form>
     <MediaPicker />
   </>}

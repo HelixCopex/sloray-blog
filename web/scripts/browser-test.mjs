@@ -5,6 +5,7 @@ import { testExperience, testIdentity } from './experience-browser.mjs';
 import { testMotion } from './motion-browser.mjs';
 import { testNavigationMotion } from './navigation-motion.mjs';
 import { testAdminChrome } from './admin-experience.mjs';
+import { testMediaBatch } from './media-browser.mjs';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const axeSource = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
@@ -109,33 +110,34 @@ try {
   await page.setViewportSize({width:1280,height:720});
   await page.getByRole('button', {name:'打开媒体选择器',exact:true}).click();
   await page.locator('#image-file').setInputFiles({name:'cover.png', mimeType:'image/png', buffer:fs.readFileSync(process.env.SLORAY_BROWSER_IMAGE)});
+  const diagnosticStart = mediaDiagnostics.length;
   const uploadPattern = '**/test/private/**';
   await page.route(uploadPattern, route => route.fulfill({status:403, contentType:'application/xml',
     headers:{'Access-Control-Allow-Origin':'*'},
     body:'<Error><Code>AccessDenied</Code><RequestId>test-storage-request</RequestId><Message>sensitive-message X-Amz-Signature=test-secret</Message></Error>'}));
-  await page.getByRole('button', {name:'上传所选图片',exact:true}).click();
-  await page.locator('.toast[data-kind=error]').filter({hasText:'HTTP 403 / AccessDenied'}).waitFor();
+  await page.locator('[data-upload]').click();
+  await page.locator('[data-upload-status]').filter({hasText:'1 张上传失败'}).waitFor();
   check(await page.locator('[data-media-error]').isVisible(), 'HTTP failure details are hidden');
   let details = await page.locator('[data-media-error-details]').textContent();
   check(details.includes('失败阶段：原图上传') && details.includes('存储请求编号：test-storage-request'), 'HTTP diagnostic fields missing');
   await page.unroute(uploadPattern);
   await page.route(uploadPattern, route => route.abort('failed'));
-  await page.getByRole('button', {name:'上传所选图片',exact:true}).click();
-  await page.locator('.toast[data-kind=error]').filter({hasText:'原图上传连接失败'}).waitFor();
+  await page.locator('[data-upload]').click();
+  await page.locator('[data-media-error-details]').filter({hasText:'原图上传连接失败'}).waitFor({state:'attached'});
   details = await page.locator('[data-media-error-details]').textContent();
   check(details.includes('HTTP 状态：0') && details.includes('本站 Origin：' + origin) && details.includes('CORS') && details.includes('if-none-match'), 'network/CORS diagnostic fields missing');
   await page.unroute(uploadPattern);
   await page.route('**/api/v1/admin/media/presign', route => route.fulfill({status:403, contentType:'application/json',
     body:JSON.stringify({error:{code:'forbidden',message:'无权申请上传许可'}})}));
-  await page.getByRole('button', {name:'上传所选图片',exact:true}).click();
-  await page.locator('.toast[data-kind=error]').filter({hasText:'申请上传许可：无权申请上传许可'}).waitFor();
+  await page.locator('[data-upload]').click();
+  await page.locator('[data-media-error-details]').filter({hasText:'申请上传许可：无权申请上传许可'}).waitFor({state:'attached'});
   details = await page.locator('[data-media-error-details]').textContent();
   check(details.includes('HTTP 状态：403') && details.includes('API 错误代码：forbidden'), 'API failure stage/status missing');
   await page.unroute('**/api/v1/admin/media/presign');
-  check(mediaDiagnostics.length === 3, 'failure diagnostics were not logged');
+  check(mediaDiagnostics.length - diagnosticStart === 3, 'failure diagnostics were not logged');
   check(mediaDiagnostics.every(text => !/X-Amz-Signature=|X-Amz-Credential=|test-secret|sensitive-message/.test(text)), 'signed URL or raw error body leaked');
   console.log('PASS 上传 HTTP/S3 错误与请求编号、网络/CORS 失败、API 失败阶段及诊断脱敏');
-  await page.getByRole('button', {name:'上传所选图片',exact:true}).click();
+  await page.locator('[data-upload]').click();
   await page.getByRole('button', {name:'设为封面',exact:true}).waitFor({state:'visible',timeout:70000});
   check(!await page.locator('[data-media-error]').isVisible(), 'retry retained stale failure details');
   const originalBody = await page.locator('#body').inputValue();
@@ -191,7 +193,7 @@ try {
   await audit();
   page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', {name:'删除图片',exact:true}).click();
-  await page.locator('[data-media-list] li').waitFor({state:'hidden'});
+  await page.locator('[data-media-list] li[data-id]').waitFor({state:'hidden'});
   await page.goto(origin + '/posts/browser-created');
   check(await page.locator('img.cover').count() === 0, 'deleted cover remains');
   await page.goto(origin + '/admin/pages');
@@ -235,6 +237,7 @@ try {
   await page.waitForURL('**/admin/pages');
   check(await page.locator('.content-list').getByRole('link', {name:'浏览器自定义页面',exact:true}).count() === 0, 'deleted page remains in admin list');
   await testThemes(page, context, origin, audit);
+  await testMediaBatch(page, origin, audit);
   await page.getByRole('button', {name:'退出登录',exact:true}).click();
   await page.waitForURL('**/login');
   await page.goto(origin);

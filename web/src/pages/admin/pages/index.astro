@@ -20,9 +20,9 @@ try {
 <AdminLayout title="页面管理">
   <PageHeader title="页面管理" />
   <p>创建关于、联系、友链等独立页面。发布后即生效，可选择是否显示在站点导航中。</p>
-  {admin && <p><Button href="/admin/pages/new" icon="add" reload>新建页面</Button></p>}
+  {admin && <p><Button variant="filled" href="/admin/pages/new" icon="add" reload>新建页面</Button></p>}
   {pages ? <>
-    {!pages.items.length && <p class="card">还没有页面，点击“新建页面”开始。</p>}
+    {!pages.items.length && <p class="card card-filled">还没有页面，点击“新建页面”开始。</p>}
     <ul class="content-list">{pages.items.map(page => <li><div><a href={`/admin/pages/${page.id}`} data-astro-prefetch="false" data-astro-reload>{page.title}</a><p class="hint">/{page.slug} · {page.status === 'published' ? '已发布' : '草稿'} · {page.show_in_nav ? `导航排序 ${page.nav_order}` : '不显示在导航'} · 版本 {page.version}</p></div>{page.status === 'published' && <a href={`/${encodeURIComponent(page.slug)}`} target="_blank" rel="noopener">查看页面</a>}</li>)}</ul>
     {pages.next_cursor && <a href={`?cursor=${encodeURIComponent(pages.next_cursor)}`}>下一页</a>}
   </> : <p role="alert">{Astro.response.status === 403 ? '只有管理员可以管理页面。' : '页面服务暂时不可用，请稍后重试。'}</p>}

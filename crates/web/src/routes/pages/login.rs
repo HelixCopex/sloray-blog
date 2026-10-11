@@ -33,7 +33,7 @@ fn render_login(notice: Option<(&str, &str)>, email: &str) -> String {
   <input id="email" name="email" type="email" required value="{email}">
   <label for="password">密码</label>
   <input id="password" name="password" type="password" required autocomplete="current-password">
-  <button type="submit"><svg class="icon" aria-hidden="true"><use href='#mi-person'/></svg> 登录</button>
+  <button type="submit" class="filled"><svg class="icon" aria-hidden="true"><use href='#mi-person'/></svg> 登录</button>
 </form>"#,
         notice_html = notice_html,
         email = html::escape(email),

@@ -17,8 +17,10 @@ export async function testAdminChrome(page, origin, audit) {
   check(await page.evaluate(() => window.__adminTabs === document.querySelector('.admin-bar') && !document.querySelector('#content').contains(window.__adminTabs)), 'admin tabs were animated or replaced');
   check(await page.evaluate(() => window.__snapshotSkipped), 'native screenshot overlay is still active');
   check(await page.getByRole('navigation',{name:'后台导航'}).getByRole('link',{name:'媒体',exact:true}).getAttribute('aria-current') === 'page', 'persistent admin tab state is stale');
-  await page.getByRole('button',{name:'上传所选图片',exact:true}).click();
-  await page.locator('.toast[data-kind=warning]').filter({hasText:'请先选择图片'}).waitFor();
+  check(!await page.locator('[data-upload]').isEnabled(), 'empty upload must be disabled');
+  await page.locator('#image-file').setInputFiles({name:'invalid.txt',mimeType:'text/plain',buffer:Buffer.from('test')});
+  await page.locator('[data-upload]').click();
+  await page.locator('.toast[data-kind=error]').filter({hasText:'1 张上传失败'}).waitFor();
   check(await page.locator('toast-stack').evaluate(el => el.matches(':popover-open')), 'toast is not in the top layer');
   await audit();
   await page.getByRole('navigation',{name:'后台导航'}).getByRole('link',{name:'主题',exact:true}).click();
@@ -31,9 +33,11 @@ export async function testAdminChrome(page, origin, audit) {
   check(await page.locator('[data-reading-progress]').evaluate(el => getComputedStyle(el).backgroundColor === 'rgba(0, 0, 0, 0)'), 'progress has a background track');
   await page.goto(origin + '/admin/posts/new');
   await page.locator('#editor[data-bound=true]').waitFor();
+  await page.locator('site-dock[data-ready=true]').waitFor();
   await page.getByRole('button',{name:'打开媒体选择器',exact:true}).click();
-  await page.getByRole('button',{name:'上传所选图片',exact:true}).click();
-  const modalNotice = page.locator('.toast[data-kind=warning]').filter({hasText:'请先选择图片'});
+  await page.locator('#image-file').setInputFiles({name:'invalid.txt',mimeType:'text/plain',buffer:Buffer.from('test')});
+  await page.locator('[data-upload]').click();
+  const modalNotice = page.locator('.toast[data-kind=error]').filter({hasText:'1 张上传失败'});
   await modalNotice.waitFor();
   await modalNotice.getByRole('button',{name:'关闭通知',exact:true}).click();
   check(await modalNotice.count() === 0, 'toast above a modal cannot be dismissed');
