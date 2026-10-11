@@ -23,14 +23,16 @@ pub async fn form(state: &AppState) -> String {
 }
 fn render(value: &SiteIdentity) -> String {
     format!(
-        r##"<form method="post" action="/admin/settings/site">
-<fieldset><legend>站点标识</legend>
+        r##"<form class="identity-form" method="post" action="/admin/settings/site">
+<section class="form-card" aria-labelledby="identity-heading">
+<h2 id="identity-heading">站点标识</h2>
+<p class="hint" id="identity-help">名称用于导航、页面标题和 RSS。站点标识单独保存。</p>
 <input type="hidden" name="version" value="{}">
-<label for="site_name">站点名称</label><input id="site_name" name="site_name" required maxlength="100" value="{}">
-<label for="favicon_url">Favicon 图片地址</label><input id="favicon_url" name="favicon_url" maxlength="2048" value="{}" placeholder="/favicon.svg 或 https://…/icon.webp">
-<p class="hint">可从媒体库复制公开图片地址。留空使用内置图标；名称同步到导航、页面标题和 RSS。</p>
-<button type="submit" class="filled"><svg class="icon" aria-hidden="true"><use href="#mi-save"/></svg>保存站点标识</button>
-</fieldset></form>"##,
+<label for="site_name">站点名称</label><input id="site_name" name="site_name" required maxlength="100" value="{}" aria-describedby="identity-help">
+<label for="favicon_url">Favicon 图片地址</label><input id="favicon_url" name="favicon_url" maxlength="2048" value="{}" placeholder="/favicon.svg 或 https://…/icon.webp" aria-describedby="favicon-help">
+<p class="hint" id="favicon-help">可从媒体库复制公开图片地址，留空使用内置图标。</p>
+<div class="form-actions"><button type="submit" class="filled"><svg class="icon" aria-hidden="true"><use href="#mi-save"/></svg>保存站点标识</button></div>
+</section></form>"##,
         value.version,
         html::escape(&value.site_name),
         html::escape(value.favicon_url.as_deref().unwrap_or(""))
@@ -87,7 +89,7 @@ pub async fn submit(
         html::page(
             "站点标识",
             &format!(
-                "<h1>站点标识</h1>{message}{}<p><a href=\"/admin/settings\">返回设置页</a></p>",
+                "<header class=\"page-heading\"><h1>站点标识</h1><p>管理公开站点的名称与图标。</p></header>{message}{}<a class=\"button-link text\" href=\"/admin/settings\">返回设置页</a>",
                 render(&value)
             ),
         ),

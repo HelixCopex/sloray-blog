@@ -6,6 +6,7 @@ import { testMotion } from './motion-browser.mjs';
 import { testNavigationMotion } from './navigation-motion.mjs';
 import { testAdminChrome } from './admin-experience.mjs';
 import { testMediaBatch } from './media-browser.mjs';
+import { testLoginDesign, testSettingsDesign } from './forms-browser.mjs';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const axeSource = fs.readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
@@ -65,16 +66,14 @@ try {
   await audit();
   console.log('PASS 浏览器局部导航、前进后退、评论提交、中文搜索、SEO 与公开页 axe 检查');
 
-  await page.goto(origin + '/login');
-  await audit();
+  await testLoginDesign(page, origin, audit);
   await page.locator('input[name=email]').fill('admin@example.com');
   await page.locator('input[name=password]').fill('a-test-only-password');
   await page.getByRole('button', {name:'登录',exact:true}).click();
   await page.waitForURL('**/admin/posts');
   await testAdminChrome(page, origin, audit);
   check(await page.getByRole('link', {name:'管理后台',exact:true}).count() === 1, 'logged-in admin entry missing');
-  await page.goto(origin + '/admin/settings');
-  await audit();
+  await testSettingsDesign(page, origin, audit);
   await testIdentity(page, context, origin, audit);
   await page.goto(origin + '/admin/posts');
   await page.getByRole('link', {name:'新建文章',exact:true}).click();

@@ -26,15 +26,22 @@ pub struct LoginForm {
 fn render_login(notice: Option<(&str, &str)>, email: &str) -> String {
     let notice_html = notice.map(|(k, m)| html::notice(k, m)).unwrap_or_default();
     let body = format!(
-        r#"{notice_html}
-<h1><svg class="icon" aria-hidden="true"><use href='#mi-person'/></svg> 登录</h1>
+        r#"<div class="auth-layout">
+{notice_html}
+<section class="auth-card" aria-labelledby="login-heading">
+<span class="auth-symbol"><svg class="icon" aria-hidden="true"><use href='#mi-person'/></svg></span>
+<h1 id="login-heading">登录</h1>
+<p class="sub">登录后管理文章、图片与站点。</p>
 <form method="post" action="/login">
   <label for="email">邮箱</label>
-  <input id="email" name="email" type="email" required value="{email}">
+  <input id="email" name="email" type="email" required autocomplete="username" value="{email}">
   <label for="password">密码</label>
   <input id="password" name="password" type="password" required autocomplete="current-password">
-  <button type="submit" class="filled"><svg class="icon" aria-hidden="true"><use href='#mi-person'/></svg> 登录</button>
-</form>"#,
+  <div class="form-actions"><button type="submit" class="filled">登录</button></div>
+</form>
+</section>
+<div class="auth-back"><a class="button-link text" href="/">返回首页</a></div>
+</div>"#,
         notice_html = notice_html,
         email = html::escape(email),
     );

@@ -57,6 +57,13 @@ FAB 只适合屏幕最重要的正向操作，因此不为每张卡片或工具�
 主题只影响公开站点，登录、setup 与后台保持可访问的内置样式。
 Dock 中的外观图标可依次选择跟随系统、浅色、深色，保存在当前浏览器中。Dock 为纯图标，悬停提示和无障碍名称说明用途。
 
+登录、安装和设置页通过内联 `material.css`、`forms.css`、`toasts.css` 复用控件与表面，
+内置配色与后台默认蓝色一致，并读取同一浅深色偏好。输入框使用持续可见的相邻标签，
+帮助文字通过 `aria-describedby` 关联；桌面限定宽度，手机按单列排布。
+参考 [文本框指南](https://m3.material.io/components/text-fields/guidelines)。
+Toast 采用同一表面、圆角与低强调图标关闭按钮，同时保留 ADR-0025 的四类颜色、顶部堆叠和时长。
+这些是项目 Toast 的既有行为，区别于 [Snackbar 指南](https://m3.material.io/components/snackbar/guidelines)中的单条底部通知。
+
 预览禁用脚本、表单与外部 CSS/字体，仅允许设置的背景图片 URL；线上可按管理员 CSS 引用其他资源。
 文本作为文本转义，CSS 的 HTML 闭合符号转义。主题不是执行不可信代码的插件沙箱。
 

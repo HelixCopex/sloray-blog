@@ -1,0 +1,71 @@
+/* Self-contained Rust forms share the same semantic surfaces and controls. */
+.skip-link { position: absolute; left: -10000px; z-index: 20; }
+.skip-link:focus { left: 1rem; top: 1rem; padding: .5rem 1rem; border-radius: 8px; background: var(--surface-high); }
+main { width: min(100%, 960px); margin: 2.5rem auto; padding: 0 1.5rem; }
+.page-heading { margin-bottom: 2rem; }
+.page-heading h1 { display: flex; align-items: center; gap: .75rem; margin: 0; }
+.page-heading h1 > .icon { width: 32px; height: 32px; flex-basis: 32px; color: var(--primary); }
+.page-heading p { margin: .75rem 0 0; color: var(--fg-muted); }
+.page-heading .account-label { margin-top: 1rem; font-size: .875rem; }
+.form-card,main > form > fieldset { min-width: 0; margin: 1.25rem 0; padding: 1.5rem; border: 0; border-radius: var(--radius); background: var(--surface-container); }
+.form-card h2 { margin: 0; font-size: 1.25rem; }
+.form-card > .hint:first-of-type { margin: .5rem 0 1.25rem; }
+.form-card label { margin-top: 1.25rem; }
+.form-card input,.form-card textarea,.form-card select { background: var(--surface); }
+.form-card .hint { margin: .5rem 0 0; overflow-wrap: anywhere; }
+.form-card code { overflow-wrap: anywhere; }
+.form-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 1.25rem; }
+.field-full { grid-column: 1 / -1; }
+.form-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
+.form-actions .hint { margin: 0; }
+.settings-help { display: flex; align-items: center; gap: .75rem; padding: 1rem 1.25rem; margin: 1.25rem 0; border-radius: var(--radius); background: var(--secondary-container); color: var(--on-secondary-container); }
+.settings-help p { margin: 0; font-size: .875rem; }
+.settings-help a { color: inherit; }
+.checkbox-field { display: flex; align-items: center; gap: .75rem; min-height: 48px; font-weight: 400; }
+.checkbox-field input { flex: 0 0 24px; margin: 0; }
+.settings-footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 2rem 0; padding-top: 1.5rem; border-top: 1px solid var(--outline-variant); }
+.settings-footer p { margin: 0; color: var(--fg-muted); font-size: .875rem; }
+.settings-footer form { flex-shrink: 0; }
+.settings-footer button { margin: 0; }
+.auth-layout { width: min(100%,440px); margin: 0 auto; }
+main:has(.auth-layout) { margin-top: clamp(2rem,12vh,8rem); }
+.auth-card { padding: 2rem; background: var(--surface-container); border-radius: 24px; }
+.auth-symbol { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 1.25rem; border-radius: 16px; background: var(--secondary-container); color: var(--on-secondary-container); }
+.auth-card h1 { margin: 0; font-size: 2rem; }
+.auth-card .sub { margin: .75rem 0 1.75rem; }
+.auth-card label { margin-top: 1.25rem; }
+.auth-card .form-actions > button { width: 100%; }
+.auth-back { display: flex; justify-content: center; margin-top: .75rem; }
+main:has(.auth-layout) > footer { text-align: center; }
+.settings-dock { position: fixed; z-index: 10; left: max(24px,calc((100vw - 1440px)/2)); top: 2rem; width: 76px; padding: 9px; background: var(--surface-container); border: 0; border-radius: 40px; box-shadow: var(--elevation-2); }
+.settings-dock summary { display: none; cursor: pointer; padding: .75rem; min-height: 48px; }
+.settings-nav { display: flex; flex-direction: column; gap: 8px; }
+.settings-nav a { min-height: 52px; height: 52px; width: 52px; display: grid; place-items: center; padding: 0; border-radius: 50%; background: var(--surface-high); text-decoration: none; color: var(--fg-muted); }
+.settings-nav a[aria-current] { background: var(--secondary-container); color: var(--on-secondary-container); }
+.settings-nav a:hover { background: color-mix(in srgb,var(--on-surface) 8%,var(--surface-high)); }
+.settings-nav a[aria-current]:hover { background: color-mix(in srgb,var(--on-secondary-container) 8%,var(--secondary-container)); }
+body:has(.settings-dock) { padding-left: 112px; }
+footer { margin-top: 2rem; color: var(--fg-muted); font-size: .85rem; }
+@supports (backdrop-filter: blur(20px)) {
+  .settings-dock { background: color-mix(in srgb,var(--surface-container) 94%,transparent); backdrop-filter: blur(24px); }
+}
+@media (max-width: 999px) {
+  body:has(.settings-dock) { padding-left: 0; padding-bottom: 12rem; }
+  .settings-dock { top: auto; bottom: calc(.75rem + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: min(350px,calc(100% - 1.5rem)); max-height: 60dvh; overflow: auto; }
+  .settings-dock:not([open]) { width: 68px; }
+  .settings-dock summary { display: grid; place-items: center; }
+  .settings-nav { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  .settings-nav a { width: 48px; height: 48px; min-height: 48px; }
+}
+@media (max-width: 600px) {
+  main { margin: 1.5rem auto; padding: 0 1rem; }
+  .page-heading { margin-bottom: 1.5rem; }
+  .form-card,main > form > fieldset { padding: 1.25rem; }
+  .form-grid { grid-template-columns: minmax(0,1fr); }
+  .auth-card { padding: 1.5rem; }
+  main:has(.auth-layout) { margin-top: 2rem; }
+  .settings-footer { align-items: flex-start; flex-direction: column; }
+}
+@media (forced-colors: active) {
+  .form-card,.auth-card,main > form > fieldset,.settings-help { border: 1px solid CanvasText; }
+}

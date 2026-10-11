@@ -61,65 +61,91 @@ fn render_settings(
 
     let body = format!(
         r#"{notice_html}
+<header class="page-heading">
 <h1><svg class="icon" aria-hidden="true"><use href='#mi-settings'/></svg> 设置</h1>
-<p class="sub">已登录：{who}（{role}）</p>
+<p>管理站点标识、公开地址与媒体服务。</p>
+<p class="account-label">已登录：{who}（{role}）</p>
+</header>
 <details class="settings-dock" open><summary aria-label="展开或收起后台导航" title="展开或收起后台导航"><svg class="icon" aria-hidden="true"><use href='#mi-menu'/></svg></summary><nav class="settings-nav" aria-label="后台导航">
 <a href="/admin/posts" aria-label="文章" title="文章"><svg class="icon" aria-hidden="true"><use href='#mi-edit'/></svg></a><a href="/admin/pages" aria-label="页面" title="页面"><svg class="icon" aria-hidden="true"><use href='#mi-article'/></svg></a><a href="/admin/media" aria-label="媒体" title="媒体"><svg class="icon" aria-hidden="true"><use href='#mi-image'/></svg></a><a href="/admin/comments" aria-label="评论" title="评论"><svg class="icon" aria-hidden="true"><use href='#mi-comment'/></svg></a><a href="/admin/themes" aria-label="主题" title="主题"><svg class="icon" aria-hidden="true"><use href='#mi-palette'/></svg></a><a href="/admin/users" aria-label="账号" title="账号"><svg class="icon" aria-hidden="true"><use href='#mi-person'/></svg></a><a href="/admin/settings" aria-current="page" aria-label="设置" title="设置"><svg class="icon" aria-hidden="true"><use href='#mi-settings'/></svg></a></nav></details>
 {identity_form}
-<p class="hint">背景图片、模糊度与页面布局在<a href="/admin/themes">主题工作台</a>设置，保存后启用生效。</p>
+<aside class="settings-help"><svg class="icon" aria-hidden="true"><use href='#mi-palette'/></svg><p>背景、颜色与页面布局在<a href="/admin/themes">主题工作台</a>设置，保存后启用。</p></aside>
 
-<form method="post" action="/admin/settings">
-  <fieldset>
-    <legend>站点地址</legend>
+<form class="settings-form" method="post" action="/admin/settings">
+  <section class="form-card" aria-labelledby="site-address-heading">
+    <h2 id="site-address-heading">站点地址</h2>
+    <p class="hint" id="site-address-help">用于文章、RSS 与站点地图的公开地址。</p>
     <label for="site_url">对外地址</label>
     <input id="site_url" name="site_url" type="text"
-           placeholder="https://blog.example.com" value="{site_url}">
-    <p class="hint">保存后用于文章、RSS 与站点地图的公开地址。</p>
-  </fieldset>
+           placeholder="https://blog.example.com" value="{site_url}" aria-describedby="site-address-help">
+  </section>
 
-  <fieldset>
-    <legend>数据库</legend>
-    <p class="hint">当前：<code>{masked}</code></p>
-    <label for="db_url">改成新的连接串（留空则不变）</label>
-    <input id="db_url" name="db_url" type="text" autocomplete="off"
-           placeholder="留空保持当前连接">
-    <p class="hint">
-      提交时会先测试新连接、必要时跑迁移，成功后才切换。
-      注意：**密码不会回显**，所以想改其他部分也必须完整重填连接串。
-    </p>
-  </fieldset>
-
-  <fieldset>
-    <legend>对象存储</legend>
+  <section class="form-card" aria-labelledby="storage-heading">
+    <h2 id="storage-heading">对象存储</h2>
+    <p class="hint" id="storage-help">保存私有原图；原图 Bucket 需关闭公开访问。</p>
+    <div class="form-grid">
+    <div class="field-full">
     <label for="s3_endpoint">Endpoint</label>
-    <input id="s3_endpoint" name="s3_endpoint" type="text" value="{s3_endpoint}">
+    <input id="s3_endpoint" name="s3_endpoint" type="text" value="{s3_endpoint}" aria-describedby="storage-help">
+    </div><div>
     <label for="s3_region">Region</label>
     <input id="s3_region" name="s3_region" type="text" value="{s3_region}">
-    <label for="s3_bucket">私有原图 Bucket（关闭公开访问）</label>
-    <input id="s3_bucket" name="s3_bucket" type="text" value="{s3_bucket}">
+    </div><div>
+    <label for="s3_bucket">私有原图 Bucket</label>
+    <input id="s3_bucket" name="s3_bucket" type="text" value="{s3_bucket}" aria-describedby="storage-help">
+    </div><div>
     <label for="s3_access_key_id">Access Key ID</label>
     <input id="s3_access_key_id" name="s3_access_key_id" type="text" value="{s3_access_key_id}">
-    <label for="s3_secret_access_key">Secret Access Key（留空表示不变）</label>
+    </div><div>
+    <label for="s3_secret_access_key">Secret Access Key</label>
     <input id="s3_secret_access_key" name="s3_secret_access_key" type="password"
-           autocomplete="off" placeholder="留空保持当前值">
-  </fieldset>
+           autocomplete="off" placeholder="留空保持当前值" aria-describedby="storage-secret-help">
+    <p class="hint" id="storage-secret-help">已保存的密钥不回显，留空保持当前值。</p>
+    </div></div>
+  </section>
 
-  <fieldset><legend>图片与缓存</legend>
-    <label for="media_bucket">公开派生图 Bucket（必须与原图分开）</label><input id="media_bucket" name="media_public_bucket" value="{media_bucket}">
-    <label for="media_url">媒体公开地址</label><input id="media_url" name="media_public_base_url" type="url" value="{media_url}">
-    <label for="cdn_zone">Cloudflare Zone ID</label><input id="cdn_zone" name="cloudflare_zone_id" value="{cdn_zone}">
-    <label for="cdn_token">CDN 清理 API Token（留空保持）</label><input id="cdn_token" name="cloudflare_api_token" type="password" autocomplete="off">
-    <label><input type="checkbox" name="clear_cdn" value="true">移除 CDN 清理配置</label>
-  </fieldset>
-  <button type="submit" class="filled"><svg class="icon" aria-hidden="true"><use href='#mi-save'/></svg> 保存</button>
+  <section class="form-card" aria-labelledby="media-settings-heading">
+    <h2 id="media-settings-heading">图片与缓存</h2>
+    <p class="hint" id="media-settings-help">公开图片与私有原图使用不同的 Bucket。</p>
+    <div class="form-grid">
+    <div>
+    <label for="media_bucket">公开派生图 Bucket</label>
+    <input id="media_bucket" name="media_public_bucket" value="{media_bucket}" aria-describedby="media-settings-help">
+    </div><div>
+    <label for="media_url">媒体公开地址</label>
+    <input id="media_url" name="media_public_base_url" type="url" value="{media_url}">
+    </div><div>
+    <label for="cdn_zone">Cloudflare Zone ID</label>
+    <input id="cdn_zone" name="cloudflare_zone_id" value="{cdn_zone}">
+    </div><div>
+    <label for="cdn_token">CDN 清理 API Token</label>
+    <input id="cdn_token" name="cloudflare_api_token" type="password" autocomplete="off" aria-describedby="cdn-token-help">
+    <p class="hint" id="cdn-token-help">留空保持已保存的 Token。</p>
+    </div></div>
+    <label class="checkbox-field"><input type="checkbox" name="clear_cdn" value="true">移除 CDN 清理配置</label>
+  </section>
+
+  <section class="form-card" aria-labelledby="database-heading">
+    <h2 id="database-heading">数据库</h2>
+    <p class="hint" id="database-current">当前：<code>{masked}</code></p>
+    <label for="db_url">新的连接串</label>
+    <input id="db_url" name="db_url" type="text" autocomplete="off"
+           placeholder="留空保持当前连接" aria-describedby="database-current database-help">
+    <p class="hint" id="database-help">留空保持当前连接。修改时需完整填写连接串；提交后先验证连接和迁移，成功才切换。</p>
+  </section>
+  <div class="form-actions"><button type="submit" class="filled"><svg class="icon" aria-hidden="true"><use href='#mi-save'/></svg> 保存</button><p class="hint">保存地址、存储与缓存配置。</p></div>
 </form>
 
-<form method="post" action="/logout" style="margin-top:1.5rem">
+<div class="settings-footer"><p>站点标识使用上方的独立保存按钮。</p><form method="post" action="/logout">
   <button class="text" type="submit"><svg class="icon" aria-hidden="true"><use href='#mi-logout'/></svg> 退出登录</button>
-</form>"#,
+</form></div>"#,
         notice_html = notice_html,
         who = html::escape(&user.display_name),
-        role = html::escape(&user.role),
+        role = if user.role == "admin" {
+            "管理员"
+        } else {
+            "作者"
+        },
         site_url = opt(&config.public_site_url),
         media_url = opt(&config.media_public_base_url),
         media_bucket = opt(&config.media_public_bucket),

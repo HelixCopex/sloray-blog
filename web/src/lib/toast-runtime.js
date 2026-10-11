@@ -30,7 +30,11 @@
     card.dataset.message = message; if (id) card.dataset.id = id;
     card.setAttribute('role', kind === 'error' ? 'alert' : 'status'); card.setAttribute('aria-atomic', 'true');
     const text = document.createElement('p'); text.className = 'toast-message'; text.textContent = message;
-    const close = document.createElement('button'); close.type = 'button'; close.className = 'toast-close'; close.setAttribute('aria-label', '关闭通知'); close.textContent = '×';
+    const close = document.createElement('button'); close.type = 'button'; close.className = 'toast-close icon-button text'; close.setAttribute('aria-label', '关闭通知');
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    icon.classList.add('icon'); icon.setAttribute('aria-hidden', 'true');
+    const symbol = document.createElementNS('http://www.w3.org/2000/svg', 'use'); symbol.setAttribute('href', '#mi-close');
+    icon.append(symbol); close.append(icon);
     const previousFocus = document.activeElement;
     function remove() {
       clearTimeout(timers.get(card)); const focused = card.contains(document.activeElement); card.remove();

@@ -1078,3 +1078,65 @@ PASS Zen 1.23.1b 公众/后台切页真实中间帧无重叠/压缩、长短正�
 确认图片无外框、操作层级与响应布局。浏览器使用隔离测试对象服务，未验证真实 R2；
 没有依赖、数据库迁移或部署改动。构建仍有既有上游 MDX/HAST
 MODULE_LEVEL_DIRECTIVE 提示。未执行远程 push CI 或发布。
+
+## Toast、登录与设置页设计统一（2026-10-11）
+
+Toast 复用共享圆角、语义色填充表面与抬升阴影，去掉外框，关闭按钮使用本地
+Material 图标与 48px 点击目标。保留 ADR-0025 的四类通知、最多四条、顶层显示、
+6/12 秒时长、悬停或聚焦暂停及关闭后焦点恢复；没有改成单条底部 Snackbar。
+浅深色均使用不透明表面，长通知在视口安全区内滚动。
+
+登录与设置页复用 `forms.css`，默认配色对齐后台内置蓝色，读取同一浏览器浅深色偏好。
+登录使用窄幅填充卡片；设置按职责分组，桌面部分字段双列，手机单列。
+帮助文字关联字段，密码和已保存密钥不回显。站点标识的独立保存结果页与安装页也
+使用共享排版。手机设置导航在启用 JS 时默认折叠，键盘可展开，跨断点恢复桌面导航；
+无 JS 时保留展开导航。鉴权、配置校验、原子保存及秘密留空保持的业务逻辑未改动。
+
+实际执行并退出 0：`cargo fmt --all -- --check`、
+`cargo clippy --locked --workspace --all-targets -- -D warnings`、
+`cargo test --locked --workspace`（合计 63 项，0 失败）、
+`./scripts/check-architecture.sh`、`cargo build --locked --bin sloray`、web 的
+`pnpm run api:check`、`test`、`check`、`build`，以及 `git diff --check`。
+实际输出摘录：
+
+```text
+ℹ tests 17
+ℹ pass 17
+ℹ fail 0
+Result (83 files):
+- 0 errors
+- 0 warnings
+- 0 hints
+[build] Complete!
+advisories ok, bans ok, licenses ok, sources ok
+结果：全部通过
+```
+
+真实 Chromium 使用最终构建和 UUID 隔离数据库执行
+`python3 scripts/smoke-browser.py`，退出 0。覆盖浅深色与 320/390/1280px axe，
+错误登录保留邮箱且不回显密码、无 JS 登录错误文本、浏览器外观偏好、
+运行时设置原生保存、站点标识独立保存及后续媒体上传。
+Toast 检查四类表面、纯文本内容、48px 关闭和键盘焦点恢复；
+设置导航检查初始折叠、键盘展开、同断点保留手动选择、回桌面展开和无 JS 可用。
+完整已有媒体、主题、公开阅读和后台 CRUD 回归均继续通过。
+实际输出包括：
+
+```text
+PASS 登录页浅深色/320/390/1280px axe、错误保留邮箱不回显密码、无 JS 反馈、Toast 四类表面/48px关闭/纯文本与键盘焦点恢复
+PASS 设置页浅深色/320/390/1280px axe、手机导航折叠/键盘展开/断点同步/无 JS 可用、运行时配置原生保存、密钥留空与保存反馈
+PASS 设置页站点名称/Favicon 保存、页面标题/导航/RSS 同步与恢复默认
+PASS HTML 登录、后台连续保存、跨域直传与封面展示、点赞、审核、删除媒体及管理页 axe 检查
+```
+
+Toast 最终样式另经 `SLORAY_TEST_ZEN=only python3 scripts/smoke-browser.py` 验证，
+退出 0，实际输出：
+
+```text
+PASS Zen 1.23.1b 公众/后台切页真实中间帧无重叠/压缩、长短正文原尺寸、后台 Tab/Dock 保持节点、Toast 顶层显示/弹窗内可点击
+```
+
+人工检查登录、设置的桌面/手机浅深色截图，以及四种 Toast 表面。
+截图位于 `/tmp/sloray-{login,settings}-{light,dark}-{1280,390}.png` 和
+`/tmp/sloray-toasts-{light,dark}.png`。测试使用隔离 PostgreSQL 和对象服务，
+未验证真实 R2；没有依赖、数据库迁移或部署改动。
+构建仍有既有上游 MDX/HAST MODULE_LEVEL_DIRECTIVE 提示。未执行远程 push CI 或发布。

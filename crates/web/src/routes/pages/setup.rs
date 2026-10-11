@@ -87,8 +87,10 @@ fn render_setup(mode: SetupMode, notice: Option<(&str, &str)>, form: Option<&Set
 
     let body = format!(
         r#"{banner}{notice_html}
+<header class="page-heading">
 <h1><svg class="icon" aria-hidden="true"><use href='#mi-settings'/></svg> 初始化 sloray-blog</h1>
 <p class="sub">所有字段都可以之后再改（登录后进入「设置」）。</p>
+</header>
 
 <form method="post" action="/setup">
   <fieldset>
